@@ -41,5 +41,5 @@
       [extended-env-record (syms vals env)
 		(let ((pos (list-find-position sym syms)))
       	  (if 	(number? pos)
-				(succeed (list-ref vals pos))
-				(apply-env env sym succeed fail)))])))
+    				(succeed (list-ref vals pos))
+    				(apply-env env sym succeed fail)))])))

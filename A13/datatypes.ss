@@ -39,6 +39,44 @@
    (rator expression?)
    (rands (list-of expression?))])
 
+
+
+(define-datatype proc-type proc-type?
+  [prim-proc
+    (proc-name symbol?)]
+  [closure-standard
+    (var lit-exp?)
+    (bodies (list-of expression?))
+    (env environment?)]
+  [closure-nonfixed
+    (vars (list-of lit-exp?))
+    (bodies (list-of expression?))
+    (env environment?)]
+  [closure-opt
+    (vars (list-of lit-exp?))
+    (opt-var lit-exp?)
+    (bodies (list-of expression?))
+    (env environment?)])
+
+(define scheme-value?
+  (lambda (x) #t))
+
+(define (var-exp? x)
+   (cases expression x
+     [var-exp (id) #t]
+     [else #f])))
+
+(define (lit-exp? x)
+  (cases expression x
+    [lit-exp (id) '#t]
+    [else '#f]))
+
+
+(define (app-exp? x)
+  (cases expression x
+    [app-exp (rator rands) '#t]
+    [else '#f]))
+
 ; Procedures to make the parser a little bit saner.
 (define 1st car)
 (define 2nd cadr)
