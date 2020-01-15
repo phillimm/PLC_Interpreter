@@ -1,6 +1,6 @@
 ;-------------------+
 ;                   |
-;   INTERPRETER    |
+;   INTERPRETER     |
 ;                   |
 ;-------------------+
 
@@ -50,7 +50,10 @@
                    "Attempt to apply bad procedure: ~s"
                     proc-value)])))
 
-(define *prim-proc-names* '(+ - * add1 sub1 cons =))
+(define *prim-proc-names* '(+ - * / = > < <= >= add1 sub1 zero? cons car cdr list null? assq eq? eqv?
+      equal? atom? length list->vector list? pair? procedure? vector->list vector
+      make-vector vector-ref vector? number? symbol? set-car! set-cdr! vector-set!
+      display newline not map apply void quotient append list-tail exit-list call/cc))
 
 (define init-env         ; for now, our initial global environment only contains
   (extend-env            ; procedure names.  Recall that an environment associates
@@ -62,19 +65,78 @@
 ; Usually an interpreter must define each
 ; built-in procedure individually.  We are "cheating" a little bit.
 
-(define apply-prim-proc
-  (lambda (prim-proc args)
-    (case prim-proc
-      [(+) (+ (1st args) (2nd args))]
-      [(-) (- (1st args) (2nd args))]
-      [(*) (* (1st args) (2nd args))]
-      [(add1) (+ (1st args) 1)]
-      [(sub1) (- (1st args) 1)]
-      [(cons) (cons (1st args) (2nd args))]
-      [(=) (= (1st args) (2nd args))]
-      [else (error 'apply-prim-proc
-            "Bad primitive procedure name: ~s"
-            prim-proc)])))
+(define (check-length prim-proc num-args args)
+  (if (eq? num-args (length args))
+    (apply prim-proc args)
+    (eopl:error prim-proc "improper number of argumments")))
+
+(define (apply-prim-proc prim-proc args)
+  (case prim-proc
+    ; any number of arguments
+    [(+) (apply prim-proc args)]
+    [(-) (apply prim-proc args)]
+    [(*) (apply prim-proc args)]
+    [(/) (apply prim-proc args)]
+    [(=) (apply prim-proc args)]
+    [(<) (apply prim-proc args)]
+    [(>) (apply prim-proc args)]
+    [(<=) (apply prim-proc args)]
+    [(>=) (apply prim-proc args)]
+    [(append) (apply prim-proc args)]
+    [(vector) (apply prim-proc args)]
+
+    ; no arguments
+    [(newline) (check-length prim-proc 0 args)]
+    [(void) (check-length prim-proc 0 args)]
+
+    ; 1 argument
+
+    [(add1) (check-length prim-proc 1 args)]
+    [(sub1) (check-length prim-proc 1 args)]
+    [(zero?) (check-length prim-proc 1 args)]
+    [(null?) (check-length prim-proc 1 args)]
+    [(atom?) (check-length prim-proc 1 args)]
+    [(list->vector) (check-length prim-proc 1 args)]
+    [(list?) (check-length prim-proc 1 args)]
+    [(pair?) (check-length prim-proc 1 args)]
+    [(vector->list) (check-length prim-proc 1 args)]
+    [(vector?) (check-length prim-proc 1 args)]
+    [(number?) (check-length prim-proc 1 args)]
+    [(symbol?) (check-length prim-proc 1 args)]
+    [(display) (check-length prim-proc 1 args)]
+    [(not) (check-length prim-proc 1 args)]
+    [(length) (check-length prim-proc 1 args)]
+    [(car) (check-length prim-proc 1 args)]
+    [(cdr) (check-length prim-proc 1 args)]
+
+    ; 2 arguments
+    [(cons) (check-length prim-proc 2 args)]
+    [(assq) (check-length prim-proc 2 args)]
+    [(eq?) (check-length prim-proc 2 args)]
+    [(equal?) (check-length prim-proc 2 args)]
+    [(eqv?) (check-length prim-proc 2 args)]
+    [(quotient) (check-length prim-proc 2 args)]
+    [(list-tail) (check-length prim-proc 2 args)]
+
+    [(make-vector) (check-length prim-proc 2 args)]
+    [(vector-ref) (check-length prim-proc 2 args)]
+    [(set-car!) (check-length prim-proc 2 args)]
+    [(set-cdr!) (check-length prim-proc 2 args)]
+
+    ; 3 arguments
+    [(vector-set!) (check-length prim-proc 3 args)]
+
+    ; special prim-procs
+
+    [(procedure?) (check-length (lambda (x) (proc-val? x)) 1 args k)]
+    [(apply) (if (= (length args) 2)
+              (apply-proc (car args) (cadr args) k)
+              (eopl:error prim-proc "improper number of argumments"))]
+    [(map) (if (= (length args) 2)
+            (map-proc (car args) (cadr args) k)
+            (eopl:error prim-proc "improper number of argumments"))]
+    [else (eopl:error 'apply-prim-proc "Bad primitive procedure name: ~s" prim-proc)]))
+
 
 (define rep      ; "read-eval-print" loop.
   (lambda ()
