@@ -16,7 +16,7 @@
 
 ;-------------------------- from this other file:
 
-;; define-datatype.scm 
+;; define-datatype.scm
 
 ;; this line must be within 8 lines of the top of the file
 '(let ((time-stamp "Time-stamp: <2001-06-08 10:36:53 dfried>"))
@@ -39,7 +39,7 @@
 ;     (eopl:printf "Error in ~s: " symbol)
 ;     (apply eopl:printf (cons format data))
 ;     (newline)
-;     (eopl:error-stop)))  
+;     (eopl:error-stop)))
 
 
 (define define-datatype:reset-registries 'ignored)
@@ -48,7 +48,7 @@
 (define define-datatype:case-checker 'ignored)
 
 (let ((define-datatype:type-registry '())
-      (define-datatype:variant-registry '()))  
+      (define-datatype:variant-registry '()))
 
   (set! define-datatype:reset-registries
     (lambda ()
@@ -131,14 +131,14 @@
             (append
               (map (lambda (v) (cons v Type-name)) variant-names)
               define-datatype:variant-registry))
-          (cond 
+          (cond
             ((memq Type-name define-datatype:type-registry) =>
              (lambda (pair)
                (set-car! pair Type-name)))
             (else
               (set! define-datatype:type-registry
                 (cons Type-name define-datatype:type-registry))))))))
-  
+
   (set! define-datatype:case-checker
     (let ((remq-or-false
             (lambda (sym ls)
@@ -177,7 +177,7 @@
                     (cond
                       ((and (null? tail-clauses) (eq? purported-variant 'else))
                  ; do nothing, we're fine
-                       )                        
+                       )
                       ((assq purported-variant variant-table)
                        =>
                        (lambda (p)
@@ -213,7 +213,7 @@
            (define-datatype:report-error 'isa "(isa ~s) expects 1 argument, not 0." 'type-name)
            (if (null? (cdr args))
              (let ((variant (car args)))
-               (let ((type-info type-name)) 
+               (let ((type-info type-name))
                  (if (and (pair? type-info) (list? (car type-info)))
                    (and (pair? variant)
                      (memq (car variant) (car type-info)) #t)
@@ -254,7 +254,7 @@
        ;[wdc]
        (define ignored
                (define-datatype:datatype-checker&registry-updater
-               'Type-name 
+               'Type-name
                '((Variant-name (Field-name Pred?) ...)
                  ...)))
        ;[\wdc]
@@ -268,7 +268,7 @@
                (define-datatype:report-error 'Type-name? "expects 1 argument, not 0.")
                (if (null? (cdr args))
                  (let ((variant (car args)))
-                   (let ((type-info Type-name)) 
+                   (let ((type-info Type-name))
                      (if (and (pair? type-info) (list? (car type-info)))
                        (and (pair? variant)
                          (memq (car variant) (car type-info)) #t)
@@ -308,7 +308,7 @@
                pred-names)
              (cons 'Variant-name args))))
        ...))))
- 
+
 (define-syntax cases
   (syntax-rules ()
     ((_ Type-name Expression . Clauses)
@@ -357,7 +357,7 @@
     (let ((all-preds (cons pred l)))
       (lambda (obj)
         (let loop ((obj obj) (preds '()))
-          (or 
+          (or
             ;; if list is empty, preds should be, too
             (and (null? obj) (null? preds))
             (if (null? preds)
@@ -367,5 +367,3 @@
                 (and (pair? obj)
                      ((car preds) (car obj))
                      (loop (cdr obj) (cdr preds))))))))))
-										 
-										 

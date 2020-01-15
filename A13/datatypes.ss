@@ -1,4 +1,3 @@
-
 (define-datatype expression expression?
   [var-exp
    (var symbol?)]
