@@ -21,9 +21,9 @@
   (lambda (datum)
     (cond
       [(symbol? datum) (var-exp datum)]
-      [(literal? datum) (lit-exp datum)]
       [(pair? datum)
         (cond
+          [(eqv? (car datum) 'quote) (lit-exp (cadr datum))]
           [(eqv? (car datum) 'set!)
             (parse-set! datum)]
           [(eqv? (car datum) 'if)
@@ -33,6 +33,7 @@
           [(or (eqv? (car datum) 'let) (eqv? (car datum) 'let*) (eqv? (car datum) 'letrec))
             (parse-let datum)]
           [else (parse-app datum)])]
+          [(literal? datum) (lit-exp datum)]
       [else (eopl:error 'parse-exp "bad expression: ~s" datum)])))
 
 (define (parse-let datum)

@@ -11,59 +11,94 @@
 (define top-level-eval
   (lambda (form)
     ; later we may add things that are not expressions.
-    (eval-exp form)))
+    (eval-exp form (empty-env))))
 
 ; eval-exp is the main component of the interpreter
 
-(define (eval-exp exp)
+(define (eval-exp exp env)
     (cases expression exp
       [lit-exp (datum) datum]
       [var-exp (id)
         (if (c..r? (symbol->string id))
           (prim-proc id)
-  				(apply-env init-env id; look up its value.
+  				(apply-env global-env id; look up its value.
         	   (lambda (x) x) ; procedure to call if it is in the environment
              (lambda () (eopl:error 'apply-env ; procedure to call if it is not in env
   		          "variable not found in environment: ~s"
   			   id))))]
       [app-exp (rator rands)
-        (let ([proc-value (eval-exp rator)]
-              [args (eval-rands rands)])
+        (let ([proc-value (eval-exp rator env)]
+              [args (eval-rands rands env)])
           (apply-proc proc-value args))]
       [if-else-exp (condition then else)
-        (if (eval-exp condition)
-            (eval-exp then)
-            (eval-exp else))]
-      [if-no-else-exp (condition then)
-        (if (eval-exp condition)
-            (eval-exp then)
+        (if (eval-exp condition env)
+            (eval-exp then env)
+            (eval-exp else env))]
+     [if-no-else-exp (condition then)
+        (if (eval-exp condition env)
+            (eval-exp then env)
             (void))]
+      [let-exp (vars exps bodies)
+        (eval-bodies bodies
+            (extend-env (map (lambda (x) (eval-exp x env)) vars)
+              (list-> vector (map (lambda (x) (eval-exp x env)) exps)) env))]
+      [letrec-exp (vars exps bodies)
+        (eval-bodies bodies
+            (extend-env (map (lambda (x) (eval-exp x env)) vars)
+              (list-> vector (map (lambda (x) (eval-exp x env)) exps)) env))]
       [lambda-exp (vars bodies)
-        (closure-standard vars bodies)]
+        (closure-standard vars bodies env)]
       [lambda-nonfixed-exp (var bodies)
-        (closure-nonfixed var bodies)]
-      [lambda-component (vars opt bodies)
-        (closure-opt vars opt bodies)]
+        (closure-nonfixed var bodies env)]
+      [lambda-opt-exp (vars opt bodies)
+        (closure-opt vars opt bodies env)]
       [else (eopl:error 'eval-exp "Bad abstract syntax: ~a" exp)]))
 
 ; evaluate the list of operands, putting results into a list
 
-(define eval-rands
-  (lambda (rands)
-    (map eval-exp rands)))
+(define (eval-rands rands)
+    (map eval-exp rands))
+
+(define (eval-bodies bodies env)
+  (cond [(null? (cdr bodies))
+            (eval-exp (car bodies) env)]
+        [else (begin
+                (eval-exp (car bodies) env)
+                (eval-bodies (cdr bodies) env))]))
 
 ;  Apply a procedure to its arguments.
 ;  At this point, we only have primitive procedures.
 ;  User-defined procedures will be added later.
 
+(define (take ls num)
+  (if (= 0 num)
+    '()
+    (cons (car ls) (take (cdr ls) (- num 1)))))
+
+(define (drop ls num)
+  (if (or (= 0 num) (null? ls))
+    ls
+    (drop (cdr ls) (- num 1))))
+
 (define apply-proc
   (lambda (proc-value args)
     (cases proc-val proc-value
       [prim-proc (op) (apply-prim-proc op args)]
-			; You will add other cases
-      [else (eopl:error 'apply-proc
-                   "Attempt to apply bad procedure: ~s"
-                    proc-value)])))
+        [closure-standard (vars bodies env)
+          (eval-bodies bodies (extend-env (eval-rands vars env) (list->vector args) env))]
+        [closure-nonfixed (var bodies env)
+          (eval-bodies bodies (extend-env
+                                (eval-rands (list var) env)
+                                (list->vector (cons args '()))
+                                env))]
+        [closure-opt (vars opt bodies env)
+          (eval-bodies bodies (extend-env
+                                (eval-rands (append vars (list opt)) env)
+                                (list->vector (append (take args vars-len) (list (drop args vars-len))))
+                                env))]
+        [else (error 'apply-proc
+                     "Attempt to apply bad procedure: ~s"
+                      proc-value)])))
 
 (define *prim-proc-names* '(+ - * / = > < <= >= add1 sub1 zero? cons car cdr list null? assq eq? eqv?
       equal? atom? length list->vector list? pair? procedure? vector->list vector
@@ -73,16 +108,18 @@
 (define init-env         ; for now, our initial global environment only contains
   (extend-env            ; procedure names.  Recall that an environment associates
      *prim-proc-names*   ;  a value (not an expression) with an identifier.
-     (map prim-proc
-          *prim-proc-names*)
+     (list->vector (map prim-proc
+          *prim-proc-names*))
      (empty-env)))
+
+(define global-env init-env)
 
 ; Usually an interpreter must define each
 ; built-in procedure individually.  We are "cheating" a little bit.
 
-(define (check-length prim-proc num-args args)
+(define (check-length proc num-args args)
   (if (eq? num-args (length args))
-    (apply prim-proc args)
+    (apply proc args)
     (eopl:error prim-proc "improper number of argumments")))
 
 (define (apply-prim-proc prim-proc args)
@@ -152,6 +189,25 @@
             (eopl:error prim-proc "improper number of argumments"))]
     [else (eopl:error 'apply-prim-proc "Bad primitive procedure name: ~s" prim-proc)]))
 
+(define (c...r? str)
+  (let ((len (string-length str)))
+    (and (eqv? #\c (string-ref str 0))
+      (eqv? #\r (string-ref str (- len 1)))
+        (andmap (lambda (x) (or (eqv? #\d x) (eqv? #\a x)))
+          (string->list (substring str 1 (- len 1)))))))
+
+(define compose
+   (case-lambda
+       [() (lambda (x) x)]
+       [(first . rest)
+       (let ([composed-rest (apply compose rest)])
+         (lambda (x) (first (composed-rest x))))]))
+
+(define (make-c...r str)
+   (let ((len (string-length str)))
+       (apply compose (map (lambda (x)
+                              (if (equal? x #\a) car cdr))
+                           (string->list (substring str 1 (- len 1)))))))
 
 (define rep      ; "read-eval-print" loop.
   (lambda ()

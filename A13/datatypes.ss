@@ -32,13 +32,19 @@
     (condition expression?)
     (then expression?)
     (else expression?)]
-  [if-no-else-exps
+  [if-no-else-exp
     (condition expression?)
     (then expression?)]
   [app-exp
    (rator expression?)
    (rands (list-of expression?))])
 
+(define-datatype environment environment?
+  [empty-env]
+  [extended-env
+    (syms (list-of symbol?))
+    (vals vector?)
+    (env environment?)])
 
 
 (define-datatype proc-type proc-type?
@@ -64,7 +70,7 @@
 (define (var-exp? x)
    (cases expression x
      [var-exp (id) #t]
-     [else #f])))
+     [else #f]))
 
 (define (lit-exp? x)
   (cases expression x
@@ -76,12 +82,3 @@
   (cases expression x
     [app-exp (rator rands) '#t]
     [else '#f]))
-
-; Procedures to make the parser a little bit saner.
-(define 1st car)
-(define 2nd cadr)
-(define 3rd caddr)
-
-(define (literal? data)
-  (or (number? data) (symbol? data) (string? data)
-   (boolean? data) (vector? data)))
