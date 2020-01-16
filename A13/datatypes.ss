@@ -47,7 +47,7 @@
     (env environment?)])
 
 
-(define-datatype proc-type proc-type?
+(define-datatype proc-val proc-type?
   [prim-proc
     (proc-name symbol?)]
   [closure-standard
