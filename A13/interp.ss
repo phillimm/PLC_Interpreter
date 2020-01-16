@@ -19,7 +19,7 @@
     (cases expression exp
       [lit-exp (datum) datum]
       [var-exp (id)
-        (if (c..r? (symbol->string id))
+        (if (c...r? (symbol->string id))
           (prim-proc id)
   				(apply-env global-env id; look up its value.
         	   (lambda (x) x) ; procedure to call if it is in the environment
