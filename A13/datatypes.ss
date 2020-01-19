@@ -8,7 +8,11 @@
     (var lit-exp?)
     (bodies (list-of expression?))]
   [lambda-opt-exp
+<<<<<<< HEAD
     (vars (list-of lit-exp?))
+=======
+    (vars (list-of expression?))
+>>>>>>> 2ea8d022c32a04b1e429e7fba31c0663be5721cc
     (opt symbol?)
     (bodies (list-of expression?))]
   [lit-exp
