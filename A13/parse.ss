@@ -36,6 +36,16 @@
           [(literal? datum) (lit-exp datum)]
       [else (eopl:error 'parse-exp "bad expression: ~s" datum)])))
 
+(define (parse-set! datum)
+    (cond [(or (null? (cdr datum)) (null? (cddr datum)) (not (null? (cdddr datum))))
+            (eopl:error 'parse-exp "set!: improper number of arguments: ~s" datum)]
+          [(not (symbol? (cadr datum)))
+                  (eopl:error 'parse-exp "set!: var to set is not a symbol ~s")]
+          [(not (null? (cdddr datum)))
+              (eopl:error 'parse-exp "set!: Too many arguments: ~s" datum)]
+          [else (set!-exp (lit-exp (cadr datum)) (parse-exp (caddr datum)))]))
+
+
 (define (parse-let datum)
   (let ([len (length datum)])
     (cond
@@ -49,14 +59,14 @@
         (eopl:error 'parse-exp "decls: not all length 2: ~s" datum)]
       ; named let
       [(eq? (car datum) 'let*)
-        (let*-exp (map car (cadr datum))
+        (let*-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
                        (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                        (map parse-exp (cddr datum)))]
       [(eq? 'letrec (car datum))
-        (letrec-exp (map car (cadr datum))
+        (letrec-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
                        (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                        (map parse-exp (cddr datum)))]
-      [else (let-exp (map car (cadr datum))
+      [else (let-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
                      (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                      (map parse-exp (cddr datum)))])))
 

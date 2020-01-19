@@ -45,11 +45,11 @@
       [let-exp (vars exps bodies)
         (eval-bodies bodies
             (extend-env (map (lambda (x) (eval-exp x env)) vars)
-              (list-> vector (map (lambda (x) (eval-exp x env)) exps)) env))]
+              (list->vector (map (lambda (x) (eval-exp x env)) exps)) env))]
       [letrec-exp (vars exps bodies)
         (eval-bodies bodies
             (extend-env (map (lambda (x) (eval-exp x env)) vars)
-              (list-> vector (map (lambda (x) (eval-exp x env)) exps)) env))]
+              (list->vector (map (lambda (x) (eval-exp x env)) exps)) env))]
       [lambda-exp (vars bodies)
         (closure-standard vars bodies env)]
       [lambda-nonfixed-exp (var bodies)
@@ -130,77 +130,76 @@
     (eopl:error prim-proc "improper number of argumments")))
 
 (define (apply-prim-proc prim-proc args)
-  (case prim-proc
-    ; any number of arguments
-    (let ((proc (symbol->string prim-proc))
-      (if (c...r? proc)
-        ((make-c...r proc) (car args)))
-        (eopl:error prim-proc " improper number of arguments to c...r")))
+  (let ((proc (symbol->string prim-proc)))
+    (if (c...r? proc)
+      ((make-c...r proc) (car args))
 
-    [(+) (apply + args)]
-    [(-) (apply - args)]
-    [(*) (apply * args)]
-    [(/) (apply / args)]
-    [(=) (apply = args)]
-    [(<) (apply < args)]
-    [(>) (apply > args)]
-    [(<=) (apply <= args)]
-    [(>=) (apply >= args)]
-    [(append) (apply append args)]
-    [(vector) (apply vector args)]
-    [(list) (apply list args)]
+    (case prim-proc
+      ; any number of arguments
 
-    ; no arguments
-    [(newline) (check-length newline 0 args)]
-    [(void) (check-length void 0 args)]
+      [(+) (apply + args)]
+      [(-) (apply - args)]
+      [(*) (apply * args)]
+      [(/) (apply / args)]
+      [(=) (apply = args)]
+      [(<) (apply < args)]
+      [(>) (apply > args)]
+      [(<=) (apply <= args)]
+      [(>=) (apply >= args)]
+      [(append) (apply append args)]
+      [(vector) (apply vector args)]
+      [(list) (apply list args)]
 
-    ; 1 argument
+      ; no arguments
+      [(newline) (check-length newline 0 args)]
+      [(void) (check-length void 0 args)]
 
-    [(add1) (check-length add1 1 args)]
-    [(sub1) (check-length sub1 1 args)]
-    [(zero?) (check-length zero? 1 args)]
-    [(null?) (check-length null? 1 args)]
-    [(atom?) (check-length atom? 1 args)]
-    [(list->vector) (check-length list->vector 1 args)]
-    [(list?) (check-length list? 1 args)]
-    [(pair?) (check-length pair? 1 args)]
-    [(vector->list) (check-length vector->list 1 args)]
-    [(vector?) (check-length vector? 1 args)]
-    [(number?) (check-length number? 1 args)]
-    [(symbol?) (check-length symbol? 1 args)]
-    [(display) (check-length display 1 args)]
-    [(not) (check-length not 1 args)]
-    [(length) (check-length length 1 args)]
-    [(car) (check-length car 1 args)]
-    [(cdr) (check-length cdr 1 args)]
+      ; 1 argument
 
-    ; 2 arguments
-    [(cons) (check-length cons 2 args)]
-    [(assq) (check-length assq 2 args)]
-    [(eq?) (check-length eq? 2 args)]
-    [(equal?) (check-length equal? 2 args)]
-    [(eqv?) (check-length eqv? 2 args)]
-    [(quotient) (check-length quotient 2 args)]
-    [(list-tail) (check-length list-tail 2 args)]
+      [(add1) (check-length add1 1 args)]
+      [(sub1) (check-length sub1 1 args)]
+      [(zero?) (check-length zero? 1 args)]
+      [(null?) (check-length null? 1 args)]
+      [(atom?) (check-length atom? 1 args)]
+      [(list->vector) (check-length list->vector 1 args)]
+      [(list?) (check-length list? 1 args)]
+      [(pair?) (check-length pair? 1 args)]
+      [(vector->list) (check-length vector->list 1 args)]
+      [(vector?) (check-length vector? 1 args)]
+      [(number?) (check-length number? 1 args)]
+      [(symbol?) (check-length symbol? 1 args)]
+      [(display) (check-length display 1 args)]
+      [(not) (check-length not 1 args)]
+      [(length) (check-length length 1 args)]
+      [(car) (check-length car 1 args)]
+      [(cdr) (check-length cdr 1 args)]
 
-    [(make-vector) (check-length make-vector 2 args)]
-    [(vector-ref) (check-length vector-ref 2 args)]
-    [(set-car!) (check-length set-car! 2 args)]
-    [(set-cdr!) (check-length set-cdr! 2 args)]
+      ; 2 arguments
+      [(cons) (check-length cons 2 args)]
+      [(assq) (check-length assq 2 args)]
+      [(eq?) (check-length eq? 2 args)]
+      [(equal?) (check-length equal? 2 args)]
+      [(eqv?) (check-length eqv? 2 args)]
+      [(quotient) (check-length quotient 2 args)]
+      [(list-tail) (check-length list-tail 2 args)]
+      [(make-vector) (check-length make-vector 2 args)]
+      [(vector-ref) (check-length vector-ref 2 args)]
+      [(set-car!) (check-length set-car! 2 args)]
+      [(set-cdr!) (check-length set-cdr! 2 args)]
 
-    ; 3 arguments
-    [(vector-set!) (check-length vector-set! 3 args)]
+      ; 3 arguments
+      [(vector-set!) (check-length vector-set! 3 args)]
 
-    ; special prim-procs
+      ; special prim-procs
 
-    [(procedure?) (check-length (lambda (x) (proc-val? x)) 1 args k)]
-    [(apply) (if (= (length args) 2)
-              (apply-proc (car args) (cadr args) k)
+      [(procedure?) (check-length (lambda (x) (proc-val? x)) 1 args k)]
+      [(apply) (if (= (length args) 2)
+                (apply-proc (car args) (cadr args) k)
+                (eopl:error prim-proc "improper number of argumments"))]
+      [(map) (if (= (length args) 2)
+              (map-proc (car args) (cadr args) k)
               (eopl:error prim-proc "improper number of argumments"))]
-    [(map) (if (= (length args) 2)
-            (map-proc (car args) (cadr args) k)
-            (eopl:error prim-proc "improper number of argumments"))]
-    [else (eopl:error 'apply-prim-proc "Bad primitive procedure name: ~s" prim-proc)]))
+      [else (eopl:error 'apply-prim-proc "Bad primitive procedure name: ~s" prim-proc)]))))
 
 (define (c...r? str)
   (let ((len (string-length str)))

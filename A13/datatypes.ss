@@ -2,30 +2,30 @@
   [var-exp
    (var symbol?)]
   [lambda-exp
-    (vars (list-of expression?))
+    (vars (list-of lit-exp?))
     (bodies (list-of expression?))]
   [lambda-nonfixed-exp
-    (var expression?)
+    (var lit-exp?)
     (bodies (list-of expression?))]
   [lambda-opt-exp
-    (vars (list-of expressionn?))
+    (vars (list-of lit-exp?))
     (opt symbol?)
     (bodies (list-of expression?))]
   [lit-exp
     (var literal?)]
   [set!-exp
-    (var symbol?)
+    (var lit-exp?)
     (exp expression?)]
   [let-exp
-    (vars (list-of symbol?))
+    (vars (list-of expression?))
     (exps (list-of expression?))
     (bodies (list-of expression?))]
   [letrec-exp
-    (vars (list-of symbol?))
+    (vars (list-of expression?))
     (exps (list-of expression?))
     (bodies (list-of expression?))]
   [let*-exp
-    (vars (list-of symbol?))
+    (vars (list-of expression?))
     (exps (list-of expression?))
     (bodies (list-of expression?))]
   [if-else-exp
