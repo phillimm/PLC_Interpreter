@@ -35,7 +35,7 @@
       [empty-env ()       ;  fail is applied.
         (fail)]
       [extended-env (syms vals env)
-		(let ((pos (list-find-position sym syms)))
-      	  (if (number? pos)
-    				(succeed (vector-ref vals pos))
-    				(apply-env env sym succeed fail)))])))
+    		(let ((pos (list-find-position sym syms)))
+          	  (if (number? pos)
+        				(succeed (vector-ref vals pos))
+        				(apply-env env sym succeed fail)))])))

@@ -6,7 +6,7 @@
 
 (define (literal? data)
   (or (number? data) (symbol? data) (string? data)
-   (boolean? data) (vector? data)))
+   (boolean? data) (vector? data) (list? data)))
 
    ; An auxiliary procedure that could be helpful.
 ;(define var-exp?
@@ -74,10 +74,10 @@
       [(null? (cadr datum))
         (lambda-exp (list ) (map parse-exp (cddr datum)))]
       [(symbol? (cadr datum))
-        (lambda-nonfixed-exp (cadr datum) (map parse-exp (cddr datum)))]
+        (lambda-nonfixed-exp (lit-exp (cadr datum)) (map parse-exp (cddr datum)))]
       [(list? (cadr datum))
         (if (andmap symbol? (cadr datum))
-            (lambda-exp (cadr datum) (map parse-exp (cddr datum)))
+            (lambda-exp (map lit-exp (cadr datum)) (map parse-exp (cddr datum)))
             (eopl:error 'parse-exp "lambda expression: formals must be symbols ~s" datum)
         )]
       [(pair? (cadr datum))

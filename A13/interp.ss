@@ -56,12 +56,13 @@
         (closure-nonfixed var bodies env)]
       [lambda-opt-exp (vars opt bodies)
         (closure-opt vars opt bodies env)]
-      [else (eopl:error 'eval-exp "Bad abstract syntax: ~a" exp)]))
+      [else (eopl:error 'eval-exp "Bad abstract syntax: ~s" exp)]))
 
 ; evaluate the list of operands, putting results into a list
 
-(define (eval-rands rands)
-    (map eval-exp rands))
+(define (eval-rands rands env)
+    (map (lambda (e)
+            (eval-exp e env)) rands))
 
 (define (eval-bodies bodies env)
   (cond [(null? (cdr bodies))
@@ -69,6 +70,8 @@
         [else (begin
                 (eval-exp (car bodies) env)
                 (eval-bodies (cdr bodies) env))]))
+
+
 
 ;  Apply a procedure to its arguments.
 ;  At this point, we only have primitive procedures.
@@ -107,7 +110,7 @@
 (define *prim-proc-names* '(+ - * / = > < <= >= add1 sub1 zero? cons car cdr list null? assq eq? eqv?
       equal? atom? length list->vector list? pair? procedure? vector->list vector
       make-vector vector-ref vector? number? symbol? set-car! set-cdr! vector-set!
-      display newline not map apply void quotient append list-tail exit-list call/cc))
+      display newline not map apply void quotient))
 
 (define init-env         ; for now, our initial global environment only contains
   (extend-env            ; procedure names.  Recall that an environment associates
@@ -129,58 +132,64 @@
 (define (apply-prim-proc prim-proc args)
   (case prim-proc
     ; any number of arguments
-    [(+) (apply prim-proc args)]
-    [(-) (apply prim-proc args)]
-    [(*) (apply prim-proc args)]
-    [(/) (apply prim-proc args)]
-    [(=) (apply prim-proc args)]
-    [(<) (apply prim-proc args)]
-    [(>) (apply prim-proc args)]
-    [(<=) (apply prim-proc args)]
-    [(>=) (apply prim-proc args)]
-    [(append) (apply prim-proc args)]
-    [(vector) (apply prim-proc args)]
+    (let ((proc (symbol->string prim-proc))
+      (if (c...r? proc)
+        ((make-c...r proc) (car args)))
+        (eopl:error prim-proc " improper number of arguments to c...r")))
+
+    [(+) (apply + args)]
+    [(-) (apply - args)]
+    [(*) (apply * args)]
+    [(/) (apply / args)]
+    [(=) (apply = args)]
+    [(<) (apply < args)]
+    [(>) (apply > args)]
+    [(<=) (apply <= args)]
+    [(>=) (apply >= args)]
+    [(append) (apply append args)]
+    [(vector) (apply vector args)]
+    [(list) (apply list args)]
 
     ; no arguments
-    [(newline) (check-length prim-proc 0 args)]
-    [(void) (check-length prim-proc 0 args)]
+    [(newline) (check-length newline 0 args)]
+    [(void) (check-length void 0 args)]
 
     ; 1 argument
 
-    [(add1) (check-length prim-proc 1 args)]
-    [(sub1) (check-length prim-proc 1 args)]
-    [(zero?) (check-length prim-proc 1 args)]
-    [(null?) (check-length prim-proc 1 args)]
-    [(atom?) (check-length prim-proc 1 args)]
-    [(list->vector) (check-length prim-proc 1 args)]
-    [(list?) (check-length prim-proc 1 args)]
-    [(pair?) (check-length prim-proc 1 args)]
-    [(vector->list) (check-length prim-proc 1 args)]
-    [(vector?) (check-length prim-proc 1 args)]
-    [(number?) (check-length prim-proc 1 args)]
-    [(symbol?) (check-length prim-proc 1 args)]
-    [(display) (check-length prim-proc 1 args)]
-    [(not) (check-length prim-proc 1 args)]
-    [(length) (check-length prim-proc 1 args)]
-    [(car) (check-length prim-proc 1 args)]
-    [(cdr) (check-length prim-proc 1 args)]
+    [(add1) (check-length add1 1 args)]
+    [(sub1) (check-length sub1 1 args)]
+    [(zero?) (check-length zero? 1 args)]
+    [(null?) (check-length null? 1 args)]
+    [(atom?) (check-length atom? 1 args)]
+    [(list->vector) (check-length list->vector 1 args)]
+    [(list?) (check-length list? 1 args)]
+    [(pair?) (check-length pair? 1 args)]
+    [(vector->list) (check-length vector->list 1 args)]
+    [(vector?) (check-length vector? 1 args)]
+    [(number?) (check-length number? 1 args)]
+    [(symbol?) (check-length symbol? 1 args)]
+    [(display) (check-length display 1 args)]
+    [(not) (check-length not 1 args)]
+    [(length) (check-length length 1 args)]
+    [(car) (check-length car 1 args)]
+    [(cdr) (check-length cdr 1 args)]
 
     ; 2 arguments
-    [(cons) (check-length prim-proc 2 args)]
-    [(assq) (check-length prim-proc 2 args)]
-    [(eq?) (check-length prim-proc 2 args)]
-    [(equal?) (check-length prim-proc 2 args)]
-    [(eqv?) (check-length prim-proc 2 args)]
-    [(quotient) (check-length prim-proc 2 args)]
-    [(list-tail) (check-length prim-proc 2 args)]
+    [(cons) (check-length cons 2 args)]
+    [(assq) (check-length assq 2 args)]
+    [(eq?) (check-length eq? 2 args)]
+    [(equal?) (check-length equal? 2 args)]
+    [(eqv?) (check-length eqv? 2 args)]
+    [(quotient) (check-length quotient 2 args)]
+    [(list-tail) (check-length list-tail 2 args)]
 
-    [(make-vector) (check-length prim-proc 2 args)]
-    [(vector-ref) (check-length prim-proc 2 args)]
-    [(set-car!) (check-length prim-proc 2 args)]
-    [(set-cdr!) (check-length prim-proc 2 args)]
+    [(make-vector) (check-length make-vector 2 args)]
+    [(vector-ref) (check-length vector-ref 2 args)]
+    [(set-car!) (check-length set-car! 2 args)]
+    [(set-cdr!) (check-length set-cdr! 2 args)]
 
     ; 3 arguments
-    [(vector-set!) (check-length prim-proc 3 args)]
+    [(vector-set!) (check-length vector-set! 3 args)]
 
     ; special prim-procs
 
@@ -212,6 +221,11 @@
        (apply compose (map (lambda (x)
                               (if (equal? x #\a) car cdr))
                            (string->list (substring str 1 (- len 1)))))))
+
+(define (map-proc proc args)
+   (cond
+     [(null? args) '()]
+     [else (cons (apply-proc proc (list (car args))) (map-proc proc (cdr args)))]))
 
 (define rep      ; "read-eval-print" loop.
   (lambda ()
