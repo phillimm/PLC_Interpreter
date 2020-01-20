@@ -192,12 +192,16 @@
 
       ; special prim-procs
 
-      [(procedure?) (check-length (lambda (x) (proc-val? x)) 1 args k)]
+      [(procedure?) (check-length (lambda (x) (or
+                                                  (proc-type? x)
+                                                  (and (symbol? x)
+                                                    (c...r? (symbol->string x)))))
+                                      1 args)]
       [(apply) (if (= (length args) 2)
-                (apply-proc (car args) (cadr args) k)
+                (apply-proc (car args) (cadr args))
                 (eopl:error prim-proc "improper number of argumments"))]
       [(map) (if (= (length args) 2)
-              (map-proc (car args) (cadr args) k)
+              (map-proc (car args) (cadr args))
               (eopl:error prim-proc "improper number of argumments"))]
       [else (eopl:error 'apply-prim-proc "Bad primitive procedure name: ~s" prim-proc)]))))
 

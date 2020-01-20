@@ -2,7 +2,7 @@
   [var-exp
    (var symbol?)]
   [lambda-exp
-    (vars (list-of lit-exp?))
+    (vars (list-of expression?))
     (bodies (list-of expression?))]
   [lambda-nonfixed-exp
     (var lit-exp?)
@@ -51,11 +51,11 @@
   [prim-proc
     (proc-name symbol?)]
   [closure-standard
-    (var lit-exp?)
+    (var (list-of expression?))
     (bodies (list-of expression?))
     (env environment?)]
   [closure-nonfixed
-    (vars (list-of expression?))
+    (var lit-exp?)
     (bodies (list-of expression?))
     (env environment?)]
   [closure-opt
