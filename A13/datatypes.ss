@@ -9,7 +9,7 @@
     (bodies (list-of expression?))]
   [lambda-opt-exp
     (vars (list-of expression?))
-    (opt symbol?)
+    (opt lit-exp?)
     (bodies (list-of expression?))]
   [lit-exp
     (var literal?)]

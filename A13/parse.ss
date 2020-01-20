@@ -21,10 +21,11 @@
             (parse-if datum)]
           [(eqv? (car datum) 'lambda)
             (parse-lambda datum)]
-          [(or (eqv? (car datum) 'or) (eqv? (car datum) 'and) (eqv? (car datum) 'begin))
+          [(or (eqv? (car datum) 'or) (eqv? (car datum) 'cond) (eqv? (car datum) 'and)
+            (eqv? (car datum) 'begin))
             (syntax-expand datum)]
           [(or (eqv? (car datum) 'let) (eqv? (car datum) 'let*) (eqv? (car datum) 'letrec))
-            (parse-let datum)]
+              (parse-let datum)]
           [else (parse-app datum)])]
           [(literal? datum) (lit-exp datum)]
       [else (eopl:error 'parse-exp "bad expression: ~s" datum)])))
@@ -45,7 +46,19 @@
         [(eqv? (car datum) 'or)
           (syntax-expand-or (cdr datum))]
         [(eqv? (car datum) 'and)
-          (syntax-expand-and (cdr datum))]))
+          (syntax-expand-and (cdr datum))]
+        [(eqv? (car datum) 'cond)
+          (syntax-expand-cond (cdr datum))]))
+
+(define (syntax-expand-cond datum)
+  (cond [(eqv? (caar datum) 'else)
+          (parse-exp (cadar datum))]
+        [(null? (cdr datum))
+          (if-no-else-exp (parse-exp (caar datum))
+                           (parse-exp (cadar datum)))]
+        [else (if-else-exp (parse-exp (caar datum))
+                           (parse-exp (cadar datum))
+                           (syntax-expand-cond (cdr datum)))]))
 
 
 (define (syntax-expand-or datum)
@@ -105,6 +118,16 @@
     [else (app-exp (parse-exp (1st datum))
                    (map parse-exp (cdr datum)))]))
 
+(define (opt-args datum)
+  (if (not (pair? datum))
+      (list )
+      (cons (car datum) (opt-args (cdr datum)))))
+
+(define (get-opt datum)
+  (if (not (pair? datum))
+      datum
+      (opt-args (cdr datum))))
+
 (define (parse-lambda datum)
     (cond
       [(null? (cddr datum))
@@ -119,8 +142,8 @@
             (eopl:error 'parse-exp "lambda expression: formals must be symbols ~s" datum)
         )]
       [(pair? (cadr datum))
-        (lambda-opt-exp (map parse-exp (cadr datum))
-                        (parse-exp (cdr (cadr datum)))
+          (lambda-opt-exp (map lit-exp (opt-args (cadr datum)))
+                        (lit-exp (get-opt (cadr datum)))
                         (map parse-exp (caddr datum)))]
       [else (eopl:error 'parse-exp "lambda expression not valid: ~s" datum)]))
 
