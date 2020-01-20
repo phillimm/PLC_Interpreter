@@ -8,15 +8,6 @@
   (or (number? data) (symbol? data) (string? data)
    (boolean? data) (vector? data) (list? data)))
 
-   ; An auxiliary procedure that could be helpful.
-;(define var-exp?
-;  (lambda (x)
-;    (cases expression x
-;      [var-exp (id) #t]
-;      [else #f])))
-;  (var-exp? (var-exp 'a))
-;  (var-exp? (app-exp (var-exp 'a) (var-exp 'b)))
-
 (define parse-exp
   (lambda (datum)
     (cond
@@ -30,11 +21,47 @@
             (parse-if datum)]
           [(eqv? (car datum) 'lambda)
             (parse-lambda datum)]
+          [(or (eqv? (car datum) 'or) (eqv? (car datum) 'and) (eqv? (car datum) 'begin))
+            (syntax-expand datum)]
           [(or (eqv? (car datum) 'let) (eqv? (car datum) 'let*) (eqv? (car datum) 'letrec))
             (parse-let datum)]
           [else (parse-app datum)])]
           [(literal? datum) (lit-exp datum)]
       [else (eopl:error 'parse-exp "bad expression: ~s" datum)])))
+
+      (define (let*->let ls)
+        (letrec ((helper (lambda (lst)
+            (cond [(null? lst) (caddr ls)]
+                  [(symbol? lst) (list lst)]
+                  [else (list 'let (list (car lst)) (helper (cdr lst)))  ]
+            )
+        ))) (helper (cadr ls))))
+
+(define (syntax-expand datum)
+  (cond [(eqv? datum 'let*)
+            (parse-exp (let*->let datum))]
+        [(eqv? datum 'begin)
+            (app-exp (lambda-exp (list ) (map parse-exp (cdr datum))) (list ))]
+        [(eqv? datum 'or)
+          (syntax-expand-or (cdr datum))]
+        [(eqv? datum 'and)
+          (syntax-expand-and (cdr datum))]))
+
+
+(define (syntax-expand-or datum)
+  (cond [(null? datum) (lit-exp #f)]
+        [else (let-exp (lit-exp 'test)
+                   (parse-exp (car datum))
+                   (list (if-else-exp (var-exp 'test)
+                                      (var-exp 'test)
+                                      (syntax-expand-or (cdr datum)))))]))
+(define (syntax-expand-and datum)
+  (cond [(null? datum)
+          (lit-exp #t)]
+        [(null? (cdr datum))
+          (if-else-exp (not (syntax-expand-and datum))
+                        (lit-exp #f)
+                        (syntax-expand-and (cdr datum)))]))
 
 (define (parse-set! datum)
     (cond [(or (null? (cdr datum)) (null? (cddr datum)) (not (null? (cdddr datum))))
@@ -59,9 +86,10 @@
         (eopl:error 'parse-exp "decls: not all length 2: ~s" datum)]
       ; named let
       [(eq? (car datum) 'let*)
-        (let*-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
-                       (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
-                       (map parse-exp (cddr datum)))]
+      ;  (let*-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
+      ;                 (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
+      ;                 (map parse-exp (cddr datum)))]
+        (syntax-expand datum)]
       [(eq? 'letrec (car datum))
         (letrec-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
                        (map (lambda (x) (parse-exp (cadr x))) (cadr datum))

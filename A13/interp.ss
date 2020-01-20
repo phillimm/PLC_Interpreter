@@ -58,6 +58,7 @@
         (closure-opt vars opt bodies env)]
       [else (eopl:error 'eval-exp "Bad abstract syntax: ~s" exp)]))
 
+
 ; evaluate the list of operands, putting results into a list
 
 (define (eval-rands rands env)
@@ -90,7 +91,7 @@
 (define apply-proc
   (lambda (proc-value args)
     (cases proc-val proc-value
-      [prim-proc (op) (apply-prim-proc op args)]
+        [prim-proc (op) (apply-prim-proc op args)]
         [closure-standard (vars bodies env)
           (eval-bodies bodies (extend-env (eval-rands vars env) (list->vector args) env))]
         [closure-nonfixed (var bodies env)
