@@ -38,20 +38,20 @@
         ))) (helper (cadr ls))))
 
 (define (syntax-expand datum)
-  (cond [(eqv? datum 'let*)
+  (cond [(eqv? (car datum) 'let*)
             (parse-exp (let*->let datum))]
-        [(eqv? datum 'begin)
+        [(eqv? (car datum) 'begin)
             (app-exp (lambda-exp (list ) (map parse-exp (cdr datum))) (list ))]
-        [(eqv? datum 'or)
+        [(eqv? (car datum) 'or)
           (syntax-expand-or (cdr datum))]
-        [(eqv? datum 'and)
+        [(eqv? (car datum) 'and)
           (syntax-expand-and (cdr datum))]))
 
 
 (define (syntax-expand-or datum)
   (cond [(null? datum) (lit-exp #f)]
-        [else (let-exp (lit-exp 'test)
-                   (parse-exp (car datum))
+        [else (let-exp (list (lit-exp 'test))
+                    (list (parse-exp (car datum)))
                    (list (if-else-exp (var-exp 'test)
                                       (var-exp 'test)
                                       (syntax-expand-or (cdr datum)))))]))
