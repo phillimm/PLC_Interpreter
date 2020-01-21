@@ -22,7 +22,7 @@
           [(eqv? (car datum) 'lambda)
             (parse-lambda datum)]
           [(or (eqv? (car datum) 'or) (eqv? (car datum) 'cond) (eqv? (car datum) 'and)
-            (eqv? (car datum) 'begin))
+            (eqv? (car datum) 'begin) (eqv? (car datum) 'case))
             (syntax-expand datum)]
           [(or (eqv? (car datum) 'let) (eqv? (car datum) 'let*) (eqv? (car datum) 'letrec))
               (parse-let datum)]
@@ -48,7 +48,20 @@
         [(eqv? (car datum) 'and)
           (syntax-expand-and (cdr datum))]
         [(eqv? (car datum) 'cond)
-          (syntax-expand-cond (cdr datum))]))
+          (syntax-expand-cond (cdr datum))]
+        [(eqv? (car datum) 'case)
+          (syntax-expand-case (cadr datum) (cddr datum))]))
+
+
+(define (syntax-expand-case test datum)
+  (cond [(eqv? (caar datum) 'else)
+          (parse-exp (cadar datum))]
+        [(null? (cdr datum))
+          (if-no-else-exp (syntax-expand-or (map (lambda (x) (eqv? test x)) (caar datum)))
+                           (parse-exp (cadar datum)))]
+        [else (if-else-exp (syntax-expand-or (map (lambda (x) (eqv? test x)) (caar datum)))
+                           (parse-exp (cadar datum))
+                           (syntax-expand-case test (cdr datum)))]))
 
 (define (syntax-expand-cond datum)
   (cond [(eqv? (caar datum) 'else)
@@ -128,13 +141,13 @@
       datum
       (opt-args (cdr datum))))
 
-(define (parse-vars v)
-    (cond
-      [(null? v) '()]
-      [(not (symbol? (car v)))
-        (eopl:error 'parse-exp "lambda argument list: formals must be symbols: ~s" v)]
-      [(symbol? (cdr v)) (list (lit-exp (car v)) (cdr v))]
-      [else (cons (lit-exp (car v)) (parse-vars (cdr v)))]))
+      (define (parse-vars v)
+        (cond
+          [(null? v) '()]
+          [(not (symbol? (car v)))
+            (eopl:error 'parse-exp "lambda argument list: formals must be symbols: ~s" v)]
+          [(symbol? (cdr v)) (list (lit-exp (car v)) (cdr v))]
+          [else (cons (lit-exp (car v)) (parse-vars (cdr v)))]))
 
 (define (parse-lambda datum)
     (cond
