@@ -127,14 +127,14 @@
   (if (not (pair? datum))
       datum
       (opt-args (cdr datum))))
-      
-      (define (parse-vars v)
-        (cond
-          [(null? v) '()]
-          [(not (symbol? (car v)))
-            (eopl:error 'parse-exp "lambda argument list: formals must be symbols: ~s" v)]
-          [(symbol? (cdr v)) (list (lit-exp (car v)) (cdr v))]
-          [else (cons (lit-exp (car v)) (parse-vars (cdr v)))]))
+
+(define (parse-vars v)
+    (cond
+      [(null? v) '()]
+      [(not (symbol? (car v)))
+        (eopl:error 'parse-exp "lambda argument list: formals must be symbols: ~s" v)]
+      [(symbol? (cdr v)) (list (lit-exp (car v)) (cdr v))]
+      [else (cons (lit-exp (car v)) (parse-vars (cdr v)))]))
 
 (define (parse-lambda datum)
     (cond
