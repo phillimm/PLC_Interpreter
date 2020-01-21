@@ -101,9 +101,9 @@
                                 env))]
         [closure-opt (vars opt bodies env)
           (eval-bodies bodies (extend-env
-                                (eval-rands (append vars (list opt)) env)
-                                (list->vector (append (take args (length vars)) (list (drop args (length vars)))))
-                                env))]
+                                      (eval-rands (append vars (list opt)) env)
+                                      (list->vector (append (take args (- (length vars) 1)) (list (drop args (- (length vars) 1)))))
+                                      env))]
         [else (error 'apply-proc
                      "Attempt to apply bad procedure: ~s"
                       proc-value)])))
@@ -149,7 +149,7 @@
       [(>=) (apply >= args)]
       [(append) (apply append args)]
       [(vector) (apply vector args)]
-      [(list) (apply list args)]
+      [(list) args]
 
       ; no arguments
       [(newline) (check-length newline 0 args)]

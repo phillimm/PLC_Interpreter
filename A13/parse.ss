@@ -142,9 +142,10 @@
             (eopl:error 'parse-exp "lambda expression: formals must be symbols ~s" datum)
         )]
       [(pair? (cadr datum))
-          (lambda-opt-exp (map lit-exp (opt-args (cadr datum)))
-                        (lit-exp (get-opt (cadr datum)))
-                        (map parse-exp (caddr datum)))]
+        (let ((l (reverse (parse-vars (cadr datum)))))
+                          (lambda-opt-exp (reverse (cdr l))
+                            (lit-exp (car l))
+                            (map parse-exp (cddr datum))))]
       [else (eopl:error 'parse-exp "lambda expression not valid: ~s" datum)]))
 
 (define (parse-if datum)
