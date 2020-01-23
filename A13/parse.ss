@@ -57,9 +57,9 @@
   (cond [(eqv? (caar datum) 'else)
           (parse-exp (cadar datum))]
         [(null? (cdr datum))
-          (if-no-else-exp (syntax-expand-or (map (lambda (x) (eqv? test x)) (caar datum)))
+          (if-no-else-exp (map (lambda (x) (app-exp (var-exp 'eqv?) (list (parse-exp test) (parse-exp x)))) (caar datum))
                            (parse-exp (cadar datum)))]
-        [else (if-else-exp (syntax-expand-or (map (lambda (x) (eqv? test x)) (caar datum)))
+        [else (if-else-exp (map (lambda (x) (app-exp (var-exp 'eqv?) (list (parse-exp test) (parse-exp x)))) (caar datum))
                            (parse-exp (cadar datum))
                            (syntax-expand-case test (cdr datum)))]))
 
