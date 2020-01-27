@@ -35,6 +35,31 @@
   [if-no-else-exp
     (condition expression?)
     (then expression?)]
+  [begin-exp
+    (bodies (list-of expression?))]
+  [or-exp
+    (bodies (list-of expression?))]
+  [and-exp
+    (bodies (list-of expression?))]
+  [cond-no-else-exp
+    (conditions (list-of expression?))
+    (results (list-of expression?))]
+  [cond-else-exp
+    (conditions (list-of expression?))
+    (else (list-of expression?))
+    (results (list-of expression?))]
+  [case-no-else-exp
+    (test expression?)
+    (conditions (list-of expression?))
+    (results (list-of expression?))]
+  [case-else-exp
+    (test expression?)
+    (conditions (list-of expression?))
+    (else (list-of expression?))
+    (results (list-of expression?))]
+  [while-exp
+    (test expression?)
+    (bodies (list-of expression?))]
   [app-exp
    (rator expression?)
    (rands (list-of expression?))])

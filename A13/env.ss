@@ -29,6 +29,23 @@
 		 (+ 1 list-index-r)
 		 #f))))))
 
+
+(define (apply-env-with-global env sym)
+   (apply-env-ref-with-global env sym))
+
+(define (apply-env-ref-with-global env sym)
+  (apply-env
+          env
+          sym
+          (lambda (v) v); procedure to call if id is in env
+          (lambda ()
+             (if (c...r? (symbol->string sym))
+               (box (prim-proc sym)) ;if it is a version of cadar then return that proc
+             (apply-env global-env
+               sym
+               (lambda (v) v)
+               (lambda () (eopl:error 'apply-env "variable ~s is not bound" id)))))))
+
 (define apply-env
   (lambda (env sym succeed fail) ; succeed and fail are "callback procedures,
     (cases environment env       ;  succeed is appluied if sym is found, otherwise

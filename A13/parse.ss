@@ -21,16 +21,195 @@
             (parse-if datum)]
           [(eqv? (car datum) 'lambda)
             (parse-lambda datum)]
-          [(or (eqv? (car datum) 'or) (eqv? (car datum) 'cond) (eqv? (car datum) 'and)
-            (eqv? (car datum) 'begin) (eqv? (car datum) 'case))
-            (syntax-expand datum)]
+          [(eqv? (car datum) 'or)
+            (parse-or datum)]
+          [(eqv? (car datum) 'cond)
+            (parse-cond datum)]
+          [(eqv? (car datum) 'and)
+            (parse-and datum)]
+          [(eqv? (car datum) 'begin)
+            (parse-begin datum)]
+          [(eqv? (car datum) 'case)
+            (parse-case datum)]
+          [(eqv? (car datum) 'while)
+            (parse-while datum)]
           [(or (eqv? (car datum) 'let) (eqv? (car datum) 'let*) (eqv? (car datum) 'letrec))
               (parse-let datum)]
           [else (parse-app datum)])]
-          [(literal? datum) (lit-exp datum)]
+      [(literal? datum) (lit-exp datum)]
       [else (eopl:error 'parse-exp "bad expression: ~s" datum)])))
 
-      (define (let*->let ls)
+(define (syntax-expand exp)
+  (cases expression exp
+      [lambda-exp (vars bodies)
+        (lambda-exp (map syntax-expand vars) (map syntax-expand bodies))]
+      [lambda-nonfixed-exp (var bodies)
+        (lambda-nonfixed-exp var (map syntax-expand bodies))]
+      [lambda-opt-exp (vars opt bodies)
+        (lambda-opt-exp (map syntax-expand vars) opt (map syntax-expand bodies))]
+      [set!-exp (var exp)
+        (set!-exp var (syntax-expand exp))]
+      [let-exp (vars exps bodies)
+        (let-exp (map syntax-expand vars) (map syntax-expand exps) (map syntax-expand bodies))]
+      [letrec-exp (vars exps bodies)
+        (syntax-expand-letrec vars exps bodies)]
+      [let*-exp (vars exps bodies)
+        (syntax-expand-let* vars exps bodies)]
+      [if-else-exp (condition then else)
+        (if-else-exp (syntax-expand condition) (syntax-expand then) (syntax-expand else))]
+      [if-no-else-exp (condition then)
+        (if-no-else-exp (syntax-expand condition) (syntax-expand then))]
+      [begin-exp (bodies)
+        (app-exp (lambda-exp (list ) (map syntax-expand bodies)) (list ))]
+      [or-exp (bodies)
+        (syntax-expand-or bodies)]
+      [cond-no-else-exp (conditions results)
+        (syntax-expand-cond conditions '() results)]
+      [cond-else-exp (conditions else results)
+        (syntax-expand-cond conditions else results)]
+      [and-exp (bodies)
+        (syntax-expand-and bodies)]
+      [case-no-else-exp (test conditions results)
+        (syntax-expand-case test conditions '() results)]
+      [case-else-exp (test conditions else results)
+        (syntax-expand-case test conditions else results)]
+      [while-exp (test bodies)
+        (syntax-expand-while test bodies)]
+      [else exp]))
+
+(define (parse-while datum)
+  (while-exp (parse-exp (cadr datum)) (map parse-exp (cddr datum))))
+
+(define (syntax-expand-while test bodies)
+;  (syntax-expand-letrec
+;    (list (lit-exp 'helper))
+;    (list (lambda-exp '()
+;            (list (if-no-else-exp test
+;                                 (begin-exp (append (cdr bodies)
+;                                             (list (app-exp (var-exp 'helper) '()))))))))
+;    (list (app-exp (var-exp 'helper) '()))))
+    (while-exp (syntax-expand test)
+        (map syntax-expand bodies)))
+
+(define (syntax-expand-letrec vars exps bodies)
+  (syntax-expand
+    (let-exp vars
+      (make-list (length vars) (lit-exp #f))
+      (append (map (lambda (x y)
+                      (set!-exp x y))
+                    vars exps) bodies))))
+(define (syntax-expand-let* vars exps bodies)
+  (cond [(null? vars)
+           (app-exp
+              (lambda-exp '() (map syntax-expand bodies))
+              '())]
+        [(= 1 (length vars))
+          (app-exp (lambda-exp vars
+                               (map syntax-expand bodies))
+                               (map syntax-expand exps))]
+        [else (app-exp (lambda-exp (list (car vars))
+                                   (list (syntax-expand-let*
+                                                (cdr vars)
+                                                (cdr exps)
+                                                bodies)))
+                        (list (syntax-expand (car exps))))]))
+
+(define (syntax-expand-and bodies)
+  (cond [(null? bodies)
+            (lit-exp #t)]
+        [(null? (cdr bodies))
+          (if-no-else-exp (syntax-expand (car bodies))
+                       (lit-exp #t))]
+        [else
+            (if-else-exp (syntax-expand (car bodies))
+                         (syntax-expand-and (cdr bodies))
+                         (lit-exp #f))]))
+
+(define (syntax-expand-cond conditions else results)
+  (cond [(null? conditions)
+            (if (null? else)
+                (app-exp (var-exp 'void) '())
+                (syntax-expand (begin-exp else)))]
+        [else (if-else-exp (syntax-expand (car conditions))
+                           (syntax-expand (car results))
+                           (syntax-expand-cond (cdr conditions)
+                                               else
+                                               (cdr results)))]))
+
+(define (syntax-expand-or bodies)
+  (cond [(null? bodies) (lit-exp #f)]
+        [else (let-exp (list (lit-exp 'test))
+                       (list (syntax-expand (car bodies)))
+                       (list (if-else-exp (var-exp 'test)
+                                          (var-exp 'test)
+                                          (syntax-expand-or (cdr bodies)))))]))
+
+(define (parse-or datum)
+  (or-exp (map parse-exp (cdr datum))))
+
+(define (parse-and datum)
+  (and-exp (map parse-exp (cdr datum))))
+
+(define (parse-begin datum)
+  (begin-exp (map parse-exp (cdr datum))))
+
+(define (parse-cond-conditions results datum)
+  (cond [(null? datum)
+            (list (reverse results))]
+        [(eqv? (caar datum) 'else)
+          (cons (reverse results) (list (cdar datum)))]
+        [else (parse-cond-conditions (cons (car datum) results) (cdr datum))]))
+
+(define (parse-cond datum)
+  (let ((result (parse-cond-conditions '() (cdr datum))))
+    (if (null? (cdr result))
+        (cond-no-else-exp
+            (map (lambda (x) (parse-exp (car x))) (car result))
+            (map (lambda (x) (begin-exp (map parse-exp (cdr x)))) (car result)))
+        (cond-else-exp
+            (map (lambda (x) (parse-exp (car x))) (car result))
+            (map parse-exp (cadr result))
+            (map (lambda (x) (begin-exp (map parse-exp (cdr x)))) (car result))))))
+
+(define (parse-case-conditions result datum)
+  (cond [(null? datum)
+          (list (reverse result))]
+        [(eqv? (caar datum) 'else)
+          (cons (reverse result)
+                (list (cdar datum)))]
+        [else (parse-case-conditions
+                (cons (car datum) result)
+                (cdr datum))]))
+
+(define (parse-case datum)
+  (let ([result (parse-case-conditions '() (cddr datum))])
+    (if (null? (cdr result))
+         (case-no-else-exp
+           (parse-exp (cadr datum))
+                   (map (lambda (x)
+                          (syntax-expand-or
+                            (map (lambda (y)
+                                    (app-exp (var-exp 'eqv?)
+                                             (list (lit-exp y)
+                                                (parse-exp (cadr datum))))) (car x))))
+                          (car result))
+                      (map (lambda (x) (begin-exp (map parse-exp (cdr x))))
+                                              (car result)))
+          (case-else-exp (parse-exp (cadr datum))
+              (map (lambda (x)
+                      (syntax-expand-or
+                        (map (lambda (y)
+                                (app-exp
+                                  (var-exp 'eqv?)
+                                    (list (lit-exp y)
+                                      (parse-exp (cadr datum))))) (car x))))
+                    (car result))
+              (map parse-exp (cadr result))
+              (map (lambda (x)
+                    (begin-exp (map parse-exp (cdr x)))) (car result)))
+          )))
+
+(define (let*->let ls)
         (letrec ((helper (lambda (lst)
             (cond [(null? lst) (caddr ls)]
                   [(symbol? lst) (list lst)]
@@ -38,56 +217,27 @@
             )
         ))) (helper (cadr ls))))
 
-(define (syntax-expand datum)
-  (cond [(eqv? (car datum) 'let*)
-            (parse-exp (let*->let datum))]
-        [(eqv? (car datum) 'begin)
-            (app-exp (lambda-exp (list ) (map parse-exp (cdr datum))) (list ))]
-        [(eqv? (car datum) 'or)
-          (syntax-expand-or (cdr datum))]
-        [(eqv? (car datum) 'and)
-          (syntax-expand-and (cdr datum))]
-        [(eqv? (car datum) 'cond)
-          (syntax-expand-cond (cdr datum))]
-        [(eqv? (car datum) 'case)
-          (syntax-expand-case (cadr datum) (cddr datum))]))
+(define (syntax-expand-case-test conditions else results)
+  (cond [(null? conditions)
+          (if (null? else)
+              (app-exp (var-exp 'void) '())
+              (syntax-expand (begin-exp else)))]
+        [(and (null? (cdr conditions)) (null? else))
+          (if-no-else-exp (car conditions)
+                          (car results))]
+        [else
+          (if-else-exp (car conditions)
+                       (car results)
+                       (syntax-expand-case-test (cdr conditions)
+                                                else
+                                                (cdr results)))]))
 
-
-(define (syntax-expand-case test datum)
-  (cond [(eqv? (caar datum) 'else)
-          (parse-exp (cadar datum))]
-        [(null? (cdr datum))
-          (if-no-else-exp (syntax-expand-or (map (lambda (x) (eqv? test x)) (caar datum)))
-                           (parse-exp (cadar datum)))]
-        [else (if-else-exp (syntax-expand-or (map (lambda (x) (eqv? test x)) (caar datum)))
-                           (parse-exp (cadar datum))
-                           (syntax-expand-case test (cdr datum)))]))
-
-(define (syntax-expand-cond datum)
-  (cond [(eqv? (caar datum) 'else)
-          (parse-exp (cadar datum))]
-        [(null? (cdr datum))
-          (if-no-else-exp (parse-exp (caar datum))
-                           (parse-exp (cadar datum)))]
-        [else (if-else-exp (parse-exp (caar datum))
-                           (parse-exp (cadar datum))
-                           (syntax-expand-cond (cdr datum)))]))
-
-
-(define (syntax-expand-or datum)
-  (cond [(null? datum) (lit-exp #f)]
-        [else (let-exp (list (lit-exp 'test))
-                    (list (parse-exp (car datum)))
-                   (list (if-else-exp (var-exp 'test)
-                                      (var-exp 'test)
-                                      (syntax-expand-or (cdr datum)))))]))
-(define (syntax-expand-and datum)
-  (cond [(null? datum)
-          (lit-exp #t)]
-        [(null? (cdr datum))
-          (if-else-exp (not (syntax-expand-and datum))
-                        (lit-exp #f)
-                        (syntax-expand-and (cdr datum)))]))
+(define (syntax-expand-case test conditions else results)
+  (app-exp
+    (lambda-exp (list (lit-exp 'test))
+                (list (syntax-expand
+                          (syntax-expand-case-test conditions else results))))
+          (list (syntax-expand test))))
 
 (define (parse-set! datum)
     (cond [(or (null? (cdr datum)) (null? (cddr datum)) (not (null? (cdddr datum))))
@@ -111,12 +261,12 @@
       [(not (andmap (lambda (x) (eq? 2 (length x))) (cadr datum)))
         (eopl:error 'parse-exp "decls: not all length 2: ~s" datum)]
       ; named let
-      [(eq? (car datum) 'let*)
-      ;  (let*-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
-      ;                 (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
-      ;                 (map parse-exp (cddr datum)))]
-        (syntax-expand datum)]
-      [(eq? 'letrec (car datum))
+      [(eqv? (car datum) 'let*)
+        (let*-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
+                     (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
+                     (map parse-exp (cddr datum)))]
+      ;  (syntax-expand datum)]
+      [(eqv? 'letrec (car datum))
         (letrec-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
                        (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                        (map parse-exp (cddr datum)))]

@@ -38,7 +38,7 @@
         (if (eval-exp condition env)
             (eval-exp then env)
             (eval-exp else env))]
-     [if-no-else-exp (condition then)
+      [if-no-else-exp (condition then)
         (if (eval-exp condition env)
             (eval-exp then env)
             (void))]
@@ -46,10 +46,14 @@
         (eval-bodies bodies
             (extend-env (map (lambda (x) (eval-exp x env)) vars)
               (list->vector (map (lambda (x) (eval-exp x env)) exps)) env))]
-      [letrec-exp (vars exps bodies)
-        (eval-bodies bodies
-            (extend-env (map (lambda (x) (eval-exp x env)) vars)
-              (list->vector (map (lambda (x) (eval-exp x env)) exps)) env))]
+    ;  [set!-exp (var exp)
+    ;    (let ((id (eval-exp var env)))
+    ;      (apply-env-with-global env id)
+    ;          (eval-exp exp env))]
+      [while-exp (test bodies)
+        (if (eval-exp test env)
+          (begin (eval-bodies bodies env)
+                  (eval-exp exp env)))]
       [lambda-exp (vars bodies)
         (closure-standard vars bodies env)]
       [lambda-nonfixed-exp (var bodies)
@@ -102,7 +106,7 @@
         [closure-opt (vars opt bodies env)
           (eval-bodies bodies (extend-env
                                       (eval-rands (append vars (list opt)) env)
-                                      (list->vector (append (take args (- (length vars) 1)) (list (drop args (- (length vars) 1)))))
+                                      (list->vector (append (take args (length vars)) (list (drop args (length vars)))))
                                       env))]
         [else (error 'apply-proc
                      "Attempt to apply bad procedure: ~s"
@@ -241,4 +245,4 @@
       (rep))))  ; tail-recursive, so stack doesn't grow.
 
 (define eval-one-exp
-  (lambda (x) (top-level-eval (parse-exp x))))
+  (lambda (x) (top-level-eval (syntax-expand (parse-exp x)))))
