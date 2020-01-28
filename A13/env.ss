@@ -41,7 +41,7 @@
           (lambda ()
              (if (c...r? (symbol->string sym))
                (box (prim-proc sym)) ;if it is a version of cadar then return that proc
-             (apply-env global-env
+             (apply-env-ref global-env
                sym
                (lambda (v) v)
                (lambda () (eopl:error 'apply-env "variable ~s is not bound" id)))))))
@@ -58,4 +58,4 @@
     		(let ((pos (list-find-position sym syms)))
           	  (if (number? pos)
         				(succeed (vector-ref vals pos))
-        				(apply-env env sym succeed fail)))])))
+        				(apply-env-ref env sym succeed fail)))])))

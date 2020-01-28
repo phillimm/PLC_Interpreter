@@ -50,7 +50,8 @@
       [set!-exp (var exp)
         (set!-exp var (syntax-expand exp))]
       [let-exp (vars exps bodies)
-        (let-exp (map syntax-expand vars) (map syntax-expand exps) (map syntax-expand bodies))]
+        (app-exp (lambda-exp vars (map syntax-expand bodies))
+                 (map syntax-expand exps))]
       [letrec-exp (vars exps bodies)
         (syntax-expand-letrec vars exps bodies)]
       [let*-exp (vars exps bodies)
@@ -90,6 +91,7 @@
 ;    (list (app-exp (var-exp 'helper) '()))))
     (while-exp (syntax-expand test)
         (map syntax-expand bodies)))
+
 
 (define (syntax-expand-letrec vars exps bodies)
   (syntax-expand
@@ -271,17 +273,16 @@
         (let*-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
                      (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                      (map parse-exp (cddr datum)))]
-      ;  (syntax-expand datum)]
       [(eqv? 'letrec (car datum))
         (letrec-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
                        (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                        (map parse-exp (cddr datum)))]
-      [else (let-exp (map (lambda (x) (lit-exp (car x))) (caddr datum))
+      [else (let-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
                      (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                      (map parse-exp (cddr datum)))])))
 
 (define (parse-named-let datum)
-  (let-exp 'letrec
+  (letrec-exp   (list (lit-exp (cadr datum)))
               (list (lambda-exp
                 (map (lambda (x) (lit-exp (car x))) (caddr datum))
                 (map parse-exp (cdddr datum))))

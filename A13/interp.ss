@@ -42,10 +42,10 @@
         (if (eval-exp condition env)
             (eval-exp then env)
             (void))]
-      [let-exp (vars exps bodies)
-        (eval-bodies bodies
-            (extend-env (map (lambda (x) (eval-exp x env)) vars)
-              (list->vector (map (lambda (x) (eval-exp x env)) exps)) env))]
+  ;    [let-exp (vars exps bodies)
+  ;      (eval-bodies bodies
+  ;          (extend-env (map (lambda (x) (eval-exp x env)) vars)
+  ;            (list->vector (map (lambda (x) (eval-exp x env)) exps)) env))]
       [set!-exp (var exp)
           (let ((id (eval-exp var env)))
               (set-box!
