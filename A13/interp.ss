@@ -46,10 +46,11 @@
         (eval-bodies bodies
             (extend-env (map (lambda (x) (eval-exp x env)) vars)
               (list->vector (map (lambda (x) (eval-exp x env)) exps)) env))]
-    ;  [set!-exp (var exp)
-    ;    (let ((id (eval-exp var env)))
-    ;      (apply-env-with-global env id)
-    ;          (eval-exp exp env))]
+      [set!-exp (var exp)
+          (let ((id (eval-exp var env)))
+              (set-box!
+                (apply-env-ref-with-global env id)
+                (eval-exp exp env)))]
       [while-exp (test bodies)
         (if (eval-exp test env)
           (begin (eval-bodies bodies env)
@@ -97,16 +98,16 @@
     (cases proc-val proc-value
         [prim-proc (op) (apply-prim-proc op args)]
         [closure-standard (vars bodies env)
-          (eval-bodies bodies (extend-env (eval-rands vars env) (list->vector args) env))]
+          (eval-bodies bodies (extend-env (eval-rands vars env) (list->vector (map box args)) env))]
         [closure-nonfixed (var bodies env)
           (eval-bodies bodies (extend-env
                                 (eval-rands (list var) env)
-                                (list->vector (cons args '()))
+                                (list->vector (map box (cons args '())))
                                 env))]
         [closure-opt (vars opt bodies env)
           (eval-bodies bodies (extend-env
                                       (eval-rands (append vars (list opt)) env)
-                                      (list->vector (append (take args (length vars)) (list (drop args (length vars)))))
+                                      (list->vector (map box (append (take args (length vars)) (list (drop args (length vars))))))
                                       env))]
         [else (error 'apply-proc
                      "Attempt to apply bad procedure: ~s"
@@ -120,7 +121,7 @@
 (define init-env         ; for now, our initial global environment only contains
   (extend-env            ; procedure names.  Recall that an environment associates
      *prim-proc-names*   ;  a value (not an expression) with an identifier.
-     (list->vector (map prim-proc
+     (list->vector (map (lambda (x) (box (prim-proc x)))
           *prim-proc-names*))
      (empty-env)))
 

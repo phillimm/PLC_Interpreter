@@ -31,7 +31,7 @@
 
 
 (define (apply-env-with-global env sym)
-   (apply-env-ref-with-global env sym))
+   (unbox (apply-env-ref-with-global env sym)))
 
 (define (apply-env-ref-with-global env sym)
   (apply-env
@@ -46,7 +46,10 @@
                (lambda (v) v)
                (lambda () (eopl:error 'apply-env "variable ~s is not bound" id)))))))
 
-(define apply-env
+(define (apply-env env sym pass fail)
+  (unbox (apply-env-ref env sym pass fail)))
+
+(define apply-env-ref
   (lambda (env sym succeed fail) ; succeed and fail are "callback procedures,
     (cases environment env       ;  succeed is appluied if sym is found, otherwise
       [empty-env ()       ;  fail is applied.

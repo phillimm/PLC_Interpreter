@@ -256,13 +256,17 @@
     (cond
       [(> 3 len)
         (eopl:error 'parse-exp "let expression: incorrect length: ~s" datum)]
+          ; named let
+          [(symbol? (cadr datum))
+            (parse-named-let datum)]
       [(not (and (list? (cadr datum)) (andmap list? (cadr datum))))
         (eopl:error 'parse-exp "decls: not a proper list: ~s" datum)]
       [(not (andmap (lambda (x) (symbol? (car x))) (cadr datum)))
         (eopl:error 'parse-exp "lambda: first members must be symbols")]
       [(not (andmap (lambda (x) (eq? 2 (length x))) (cadr datum)))
         (eopl:error 'parse-exp "decls: not all length 2: ~s" datum)]
-      ; named let
+
+      ;let*
       [(eqv? (car datum) 'let*)
         (let*-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
                      (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
@@ -272,9 +276,18 @@
         (letrec-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
                        (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                        (map parse-exp (cddr datum)))]
-      [else (let-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
+      [else (let-exp (map (lambda (x) (lit-exp (car x))) (caddr datum))
                      (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                      (map parse-exp (cddr datum)))])))
+
+(define (parse-named-let datum)
+  (let-exp 'letrec
+              (list (lit-exp (cadr datum)))
+              (list (lambda-exp
+                (map (lambda (x) (lit-exp (car x))) (caddr datum))
+                (map parse-exp (cdddr datum))))
+              (list (app-exp (var-exp (cadr datum))
+                       (map (lambda (x) (parse-exp (cadr x))) (caddr datum))))))
 
 (define (parse-app datum)
   (cond
