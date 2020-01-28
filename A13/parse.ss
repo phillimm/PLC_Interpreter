@@ -282,7 +282,6 @@
 
 (define (parse-named-let datum)
   (let-exp 'letrec
-              (list (lit-exp (cadr datum)))
               (list (lambda-exp
                 (map (lambda (x) (lit-exp (car x))) (caddr datum))
                 (map parse-exp (cdddr datum))))
