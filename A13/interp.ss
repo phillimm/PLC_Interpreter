@@ -39,6 +39,10 @@
       [set!-exp (var exp)
           (let ((id (eval-exp var env)))
               (display id)
+              (newline)
+              (display (apply-env-ref-with-global env id))
+              (newline )
+              (display   (eval-exp exp env))
               (set-box!
                 (apply-env-ref-with-global env id)
                 (eval-exp exp env)))]
