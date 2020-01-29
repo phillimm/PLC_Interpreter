@@ -38,7 +38,10 @@
   ;            (list->vector (map (lambda (x) (eval-exp x env)) exps)) env))]
       [set!-exp (var exp)
           (begin
+          (display var)
+          (newline )
           (display env)
+          (newline)
           (let ((id (eval-exp var env)))
               (set-box!
                 (apply-env-ref-with-global env var)
