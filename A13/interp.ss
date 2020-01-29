@@ -37,15 +37,11 @@
   ;          (extend-env (map (lambda (x) (eval-exp x env)) vars)
   ;            (list->vector (map (lambda (x) (eval-exp x env)) exps)) env))]
       [set!-exp (var exp)
-          (begin
-          (display var)
-          (newline )
-          (display env)
-          (newline)
           (let ((id (eval-exp var env)))
+              (display id)
               (set-box!
-                (apply-env-ref-with-global env var)
-                (eval-exp exp env))))]
+                (apply-env-ref-with-global env id)
+                (eval-exp exp env)))]
       [while-exp (test bodies)
         (if (eval-exp test env)
           (begin (eval-bodies bodies env)
