@@ -2,13 +2,13 @@
   [var-exp
    (var symbol?)]
   [lambda-exp
-    (vars (list-of expression?))
+    (vars (list-of lit-exp?))
     (bodies (list-of expression?))]
   [lambda-nonfixed-exp
     (var lit-exp?)
     (bodies (list-of expression?))]
   [lambda-opt-exp
-    (vars (list-of expression?))
+    (vars (list-of lit-exp?))
     (opt lit-exp?)
     (bodies (list-of expression?))]
   [lit-exp
@@ -80,7 +80,7 @@
     (bodies (list-of expression?))
     (env environment?)]
   [closure-nonfixed
-    (var lit-exp?)
+    (var (list-of lit-exp?))
     (bodies (list-of expression?))
     (env environment?)]
   [closure-opt

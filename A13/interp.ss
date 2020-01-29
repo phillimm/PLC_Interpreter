@@ -19,17 +19,7 @@
     (cases expression exp
       [lit-exp (datum) datum]
       [var-exp (id)
-        (apply-env env
-            id
-            (lambda (x) x)
-            (lambda ()
-              (if (c...r? (symbol->string id))
-                (prim-proc id)
-                (apply-env global-env id; look up its value.
-                   (lambda (x) x) ; procedure to call if it is in the environment
-                   (lambda () (eopl:error 'apply-env ; procedure to call if it is not in env
-                      "variable not found in environment: ~s"
-                 id))))))]
+        (apply-env-with-global env id)]
       [app-exp (rator rands)
         (let ([proc-value (eval-exp rator env)]
               [args (eval-rands rands env)])
@@ -47,10 +37,12 @@
   ;          (extend-env (map (lambda (x) (eval-exp x env)) vars)
   ;            (list->vector (map (lambda (x) (eval-exp x env)) exps)) env))]
       [set!-exp (var exp)
+          (begin
+          (display env)
           (let ((id (eval-exp var env)))
               (set-box!
-                (apply-env-ref-with-global env id)
-                (eval-exp exp env)))]
+                (apply-env-ref-with-global env var)
+                (eval-exp exp env))))]
       [while-exp (test bodies)
         (if (eval-exp test env)
           (begin (eval-bodies bodies env)
