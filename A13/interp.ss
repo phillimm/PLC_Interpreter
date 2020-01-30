@@ -106,7 +106,7 @@
 (define *prim-proc-names* '(+ - * / = > < <= >= add1 sub1 zero? cons car cdr list null? assq eq? eqv?
       equal? atom? length list->vector list? pair? procedure? vector->list vector
       make-vector vector-ref vector? number? symbol? set-car! set-cdr! vector-set!
-      display newline not map apply void quotient))
+      display newline not map apply void quotient append list-tail))
 
 (define init-env         ; for now, our initial global environment only contains
   (extend-env            ; procedure names.  Recall that an environment associates
