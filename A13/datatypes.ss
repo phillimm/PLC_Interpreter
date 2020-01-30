@@ -76,7 +76,7 @@
   [prim-proc
     (proc-name symbol?)]
   [closure-standard
-    (var (list-of expression?))
+    (var (list-of lit-exp?))
     (bodies (list-of expression?))
     (env environment?)]
   [closure-nonfixed

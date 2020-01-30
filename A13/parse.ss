@@ -243,14 +243,22 @@
                           (syntax-expand-case-test conditions else results))))
           (list (syntax-expand test))))
 
-(define (parse-set! datum)
-    (cond [(or (null? (cdr datum)) (null? (cddr datum)) (not (null? (cdddr datum))))
-            (eopl:error 'parse-exp "set!: improper number of arguments: ~s" datum)]
-          [(not (symbol? (cadr datum)))
-                  (eopl:error 'parse-exp "set!: var to set is not a symbol ~s")]
-          [(not (null? (cdddr datum)))
-              (eopl:error 'parse-exp "set!: Too many arguments: ~s" datum)]
-          [else (set!-exp (lit-exp (cadr datum)) (parse-exp (caddr datum)))]))
+;(define (parse-set! datum)
+;    (cond [(or (null? (cdr datum)) (null? (cddr datum)) (not (null? (cdddr datum))))
+;            (eopl:error 'parse-exp "set!: improper number of arguments: ~s" datum)]
+;          [(not (symbol? (cadr datum)))
+;                  (eopl:error 'parse-exp "set!: var to set is not a symbol ~s")]
+;          [(not (null? (cdddr datum)))
+;              (eopl:error 'parse-exp "set!: Too many arguments: ~s" datum)]
+;          [else (set!-exp (lit-exp (cadr datum)) (parse-exp (caddr datum)))]))
+
+          (define (parse-set! datum)
+            (cond
+              [(or (null? (cdr datum)) (null? (cddr datum)) (not (null? (cdddr datum))))
+                (eopl:error 'parse-exp "set!-expression: improper number of arguments ~s" datum)]
+              [(not (symbol? (cadr datum))) (eopl:error 'parse-exp "set!-expression: id is not a symbol ~s" datum)]
+              [(null? (cdddr datum)) (set!-exp (lit-exp (cadr datum)) (parse-exp (caddr datum)))]
+              [else (eopl:error 'parse-exp "set!-expression: too many arguments ~s" datum)]))
 
 
 (define (parse-let datum)

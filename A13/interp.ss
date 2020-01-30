@@ -38,11 +38,6 @@
   ;            (list->vector (map (lambda (x) (eval-exp x env)) exps)) env))]
       [set!-exp (var exp)
           (let ((id (eval-exp var env)))
-              (display id)
-              (newline)
-              (display (apply-env-ref-with-global env id))
-              (newline )
-              (display   (eval-exp exp env))
               (set-box!
                 (apply-env-ref-with-global env id)
                 (eval-exp exp env)))]
@@ -95,14 +90,14 @@
         [closure-standard (vars bodies env)
           (eval-bodies bodies (extend-env (eval-rands vars env) (list->vector (map box args)) env))]
         [closure-nonfixed (var bodies env)
-          (eval-bodies bodies (extend-env
-                                (eval-rands (list var) env)
-                                (list->vector (map box (cons args '())))
-                                env))]
+        (eval-bodies bodies (extend-env
+                              (eval-rands (list var) env)
+                              (list->vector (map box (cons args '())))
+                              env))]
         [closure-opt (vars opt bodies env)
           (eval-bodies bodies (extend-env
                                       (eval-rands (append vars (list opt)) env)
-                                      (list->vector (map box (append (take args (length vars)) (list (drop args (length vars))))))
+                                      (list->vector (map box (append (take args vars-len) (list (drop args vars-len)))))
                                       env))]
         [else (error 'apply-proc
                      "Attempt to apply bad procedure: ~s"

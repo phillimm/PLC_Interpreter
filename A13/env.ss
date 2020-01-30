@@ -30,11 +30,12 @@
 		 #f))))))
 
 
-(define (apply-env-with-global env sym)
-   (unbox (apply-env-ref-with-global env sym)))
+     (define (apply-env-with-global env sym)
+       (unbox (apply-env-ref-with-global env sym)))
 
-(define (apply-env-ref-with-global env sym)
-  (apply-env
+
+     (define (apply-env-ref-with-global env sym)
+       (apply-env-ref
           env
           sym
           (lambda (v) v); procedure to call if id is in env
@@ -44,7 +45,7 @@
              (apply-env-ref global-env
                sym
                (lambda (v) v)
-               (lambda () (eopl:error 'apply-env "variable ~s is not bound" id)))))))
+               (lambda () (eopl:error 'apply-env "variable ~s is not bound" sym)))))))
 
 (define (apply-env env sym pass fail)
   (unbox (apply-env-ref env sym pass fail)))
