@@ -15,6 +15,21 @@
   (lambda (syms vals env)
     (extended-env syms vals env)))
 
+(define (reset-global-env)
+    (set! global-env init-env))
+
+(define (v-cons val vec)
+  (let ((new (make-vector (+ 1 (vector-length vec)))))
+    (vector-set! new 0 val)
+    (vector-copy! new 1 vec 0) new))
+
+(define (add-to-global-env binding evaled-body)
+  (cases environment global-environment
+    [extended-env (syms vals env)
+      (set! global-env (extended-env (cons sym syms)
+        (v-cons (box value) vals) env))])
+)
+
 (define list-find-position
   (lambda (sym los)
     (list-index (lambda (xsym) (eqv? sym xsym)) los)))
@@ -30,18 +45,17 @@
 		 #f))))))
 
 
-     (define (apply-env-with-global env sym)
-       (unbox (apply-env-ref-with-global env sym)))
+(define (apply-env-with-global env sym)
+   (unbox (apply-env-ref-with-global env sym)))
 
-
-     (define (apply-env-ref-with-global env sym)
-       (apply-env-ref
-          env
-          sym
-          (lambda (v) v); procedure to call if id is in env
-          (lambda ()
-             (if (c...r? (symbol->string sym))
-               (box (prim-proc sym)) ;if it is a version of cadar then return that proc
+(define (apply-env-ref-with-global env sym)
+ (apply-env-ref
+    env
+    sym
+    (lambda (v) v); procedure to call if id is in env
+      (lambda ()
+         (if (c...r? (symbol->string sym))
+             (box (prim-proc sym)) ;if it is a version of cadar then return that proc
              (apply-env-ref global-env
                sym
                (lambda (v) v)

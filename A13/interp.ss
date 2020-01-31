@@ -8,10 +8,15 @@
 
 ; top-level-eval evaluates a form in the global environment
 
-(define top-level-eval
-  (lambda (form)
-    ; later we may add things that are not expressions.
-    (eval-exp form (empty-env))))
+(define (top-level-eval form)
+  (cases expression form
+    ; must insure order of operations.
+    [begin-exp (bodies)
+      (for-each top-level-eval bodies)]
+    [define-exp (binding body)
+      (add-to-global-env binding (eval-exp body (empty-env)))]
+    ; else just do what top-level eval always does
+    [else (eval-exp form (empty-env))]))
 
 ; eval-exp is the main component of the interpreter
 
@@ -51,6 +56,8 @@
         (closure-nonfixed var bodies env)]
       [lambda-opt-exp (vars opt bodies)
         (closure-opt vars opt bodies env)]
+      [begin-exp (bodies)
+        (eval-bodies bodies env)]
       [else (eopl:error 'eval-exp "Bad abstract syntax: ~s" exp)]))
 
 
