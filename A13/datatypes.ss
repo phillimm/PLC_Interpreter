@@ -61,7 +61,7 @@
     (test expression?)
     (bodies (list-of expression?))]
   [define-exp
-    (binding expression?)
+    (binding symbol?)
     (body expression)]
   [app-exp
    (rator expression?)

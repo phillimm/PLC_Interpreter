@@ -36,8 +36,8 @@
 (define (add-to-global-env binding evaled-body)
   (cases environment global-environment
     [extended-env (syms vals env)
-      (set! global-env (extended-env (cons sym syms)
-        (v-cons (box value) vals) env))]
+      (set! global-env (extended-env (cons binding syms)
+        (v-cons (box evaled-body) vals) env))]
     [else (eopl:error 'add-to-global-env "you done f**ked up")])
 )
 

@@ -153,7 +153,7 @@
                                           (syntax-expand-or (cdr bodies)))))]))
 
 (define (parse-define datum)
-  (define-exp (parse-exp (cadr datum)) (parse-exp (caddr datum))))
+  (define-exp (cadr datum) (parse-exp (caddr datum))))
 
 (define (parse-or datum)
   (or-exp (map parse-exp (cdr datum))))
