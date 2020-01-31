@@ -18,10 +18,11 @@
 (define (reset-global-env)
     (set! global-env init-env))
 
-(define (v-cons val vec)
-  (let ((new (make-vector (+ 1 (vector-length vec)))))
-    (vector-set! new 0 val)
-    (vector-copy! new 1 vec 0) new))
+    (define (vector-cons elem src)
+      (let ((newv (make-vector (+ 1 (vector-length src)))))
+        (vector-set! newv 0 elem)
+        (vector-copy! newv 1 src 0)
+        newv))
 
     (define (vector-copy! dest dest-start src src-start)
       (letrec ((loop (lambda (dest-start src-start)
@@ -34,10 +35,10 @@
 
 
 (define (add-to-global-env binding evaled-body)
-  (cases environment global-environment
+  (cases environment global-env
     [extended-env (syms vals env)
       (set! global-env (extended-env (cons binding syms)
-        (v-cons (box evaled-body) vals) env))]
+        (vector-cons (box evaled-body) vals) env))]
     [else (eopl:error 'add-to-global-env "you done f**ked up")])
 )
 

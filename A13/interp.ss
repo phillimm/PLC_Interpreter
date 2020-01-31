@@ -10,14 +10,10 @@
 
 (define (top-level-eval form)
   (cases expression form
-    ; must insure order of operations.
-  ;  [begin-exp (bodies)
-  ;    (for-each top-level-eval bodies)]
-    [define-exp (binding body)
-      (display "top-level define")
-      (add-to-global-env binding (eval-exp body (empty-env)))]
-    ; else just do what top-level eval always does
-    [else (eval-exp form (empty-env))]))
+      [define-exp (var body) (add-to-global-env var (eval-exp body (empty-env)))]
+    ;  [begin-exp (bodies) (for-each top-level-eval bodies)]
+      [else (eval-exp form (empty-env))]))
+    ; later we may add things that are not expressions.	    ; later we may add things that are not expressions.
 
 ; eval-exp is the main component of the interpreter
 

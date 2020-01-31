@@ -36,7 +36,7 @@
           [(or (eqv? (car datum) 'let) (eqv? (car datum) 'let*) (eqv? (car datum) 'letrec))
               (parse-let datum)]
           [(eqv? (car datum) 'define)
-            (disply "parse-define")
+            (display "parse-define")
             (define-exp (cadr datum) (parse-exp (caddr datum)))]
           [else (parse-app datum)])]
       [(literal? datum) (lit-exp datum)]
@@ -45,9 +45,8 @@
 (define (syntax-expand exp)
   (cases expression exp
       [define-exp (var body)
-
-      (disply "syntax-expand-define")
-        (define-exp var (syntax-expand body))]
+        (display "syntax-expand-define")
+          (define-exp var (syntax-expand body))]
       [lambda-exp (vars bodies)
         (lambda-exp (map syntax-expand vars) (map syntax-expand bodies))]
       [lambda-nonfixed-exp (var bodies)
