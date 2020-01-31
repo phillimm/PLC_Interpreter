@@ -62,9 +62,9 @@
         (if-else-exp (syntax-expand condition) (syntax-expand then) (syntax-expand else))]
       [if-no-else-exp (condition then)
         (if-no-else-exp (syntax-expand condition) (syntax-expand then))]
-    ;  [begin-exp (bodies)
+      [begin-exp (bodies)
       ;  (app-exp (lambda-exp (list ) (map syntax-expand bodies)) (list ))]
-
+        (begin-exp (map syntax-expand bodies))]
       [or-exp (bodies)
         (syntax-expand-or bodies)]
       [cond-no-else-exp (conditions results)

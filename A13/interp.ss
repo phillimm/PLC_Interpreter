@@ -11,8 +11,8 @@
 (define (top-level-eval form)
   (cases expression form
     ; must insure order of operations.
-    [begin-exp (bodies)
-      (for-each top-level-eval bodies)]
+  ;  [begin-exp (bodies)
+  ;    (for-each top-level-eval bodies)]
     [define-exp (binding body)
       (add-to-global-env binding (eval-exp body (empty-env)))]
     ; else just do what top-level eval always does
@@ -50,6 +50,8 @@
         (if (eval-exp test env)
           (begin (eval-bodies bodies env)
                   (eval-exp exp env)))]
+  ;   [begin-exp (bodies)
+  ;      (for-each top-level-eval bodies)]
       [lambda-exp (vars bodies)
         (closure-standard vars bodies env)]
       [lambda-nonfixed-exp (var bodies)

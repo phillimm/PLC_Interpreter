@@ -23,11 +23,22 @@
     (vector-set! new 0 val)
     (vector-copy! new 1 vec 0) new))
 
+    (define (vector-copy! dest dest-start src src-start)
+      (letrec ((loop (lambda (dest-start src-start)
+                      (if (not (or
+                        (= dest-start (vector-length dest))
+                          (= src-start (vector-length src))))
+                        (begin (vector-set! dest dest-start (vector-ref src src-start))
+                          (loop (+ 1 dest-start) (+ 1 src-start)))))))
+              (loop dest-start src-start)))
+
+
 (define (add-to-global-env binding evaled-body)
   (cases environment global-environment
     [extended-env (syms vals env)
       (set! global-env (extended-env (cons sym syms)
-        (v-cons (box value) vals) env))])
+        (v-cons (box value) vals) env))]
+    [else (eopl:error 'add-to-global-env "you done f**ked up")])
 )
 
 (define list-find-position
