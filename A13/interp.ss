@@ -14,6 +14,7 @@
   ;  [begin-exp (bodies)
   ;    (for-each top-level-eval bodies)]
     [define-exp (binding body)
+      (display "top-level define")
       (add-to-global-env binding (eval-exp body (empty-env)))]
     ; else just do what top-level eval always does
     [else (eval-exp form (empty-env))]))

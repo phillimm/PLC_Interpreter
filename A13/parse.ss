@@ -36,13 +36,18 @@
           [(or (eqv? (car datum) 'let) (eqv? (car datum) 'let*) (eqv? (car datum) 'letrec))
               (parse-let datum)]
           [(eqv? (car datum) 'define)
-            (parse-define datum)]
+            (disply "parse-define")
+            (define-exp (cadr datum) (parse-exp (caddr datum)))]
           [else (parse-app datum)])]
       [(literal? datum) (lit-exp datum)]
       [else (eopl:error 'parse-exp "bad expression: ~s" datum)])))
 
 (define (syntax-expand exp)
   (cases expression exp
+      [define-exp (var body)
+
+      (disply "syntax-expand-define")
+        (define-exp var (syntax-expand body))]
       [lambda-exp (vars bodies)
         (lambda-exp (map syntax-expand vars) (map syntax-expand bodies))]
       [lambda-nonfixed-exp (var bodies)
@@ -63,7 +68,7 @@
       [if-no-else-exp (condition then)
         (if-no-else-exp (syntax-expand condition) (syntax-expand then))]
       [begin-exp (bodies)
-      ;  (app-exp (lambda-exp (list ) (map syntax-expand bodies)) (list ))]
+    ;    (app-exp (lambda-exp (list ) (map syntax-expand bodies)) (list ))]
         (begin-exp (map syntax-expand bodies))]
       [or-exp (bodies)
         (syntax-expand-or bodies)]
@@ -79,8 +84,6 @@
         (syntax-expand-case test conditions else results)]
       [while-exp (test bodies)
         (syntax-expand-while test bodies)]
-      [define-exp (binding body)
-        (define-exp binding (syntax-expand body))]
       [else exp]))
 
 
@@ -151,9 +154,6 @@
                        (list (if-else-exp (var-exp 'test)
                                           (var-exp 'test)
                                           (syntax-expand-or (cdr bodies)))))]))
-
-(define (parse-define datum)
-  (define-exp (cadr datum) (parse-exp (caddr datum))))
 
 (define (parse-or datum)
   (or-exp (map parse-exp (cdr datum))))
