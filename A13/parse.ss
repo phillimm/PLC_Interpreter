@@ -148,11 +148,11 @@
 
 (define (syntax-expand-or bodies)
   (cond [(null? bodies) (lit-exp #f)]
-        [else (let-exp (list (lit-exp 'test))
+        [else (syntax-expand (let-exp (list (lit-exp 'test))
                        (list (syntax-expand (car bodies)))
                        (list (if-else-exp (var-exp 'test)
                                           (var-exp 'test)
-                                          (syntax-expand-or (cdr bodies)))))]))
+                                          (syntax-expand-or (cdr bodies))))))]))
 
 (define (parse-or datum)
   (or-exp (map parse-exp (cdr datum))))

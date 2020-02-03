@@ -11,7 +11,7 @@
 (define (top-level-eval form)
   (cases expression form
       [define-exp (var body) (add-to-global-env var (eval-exp body (empty-env)))]
-    ;  [begin-exp (bodies) (for-each top-level-eval bodies)]
+      [begin-exp (bodies) (for-each top-level-eval bodies)]
       [else (eval-exp form (empty-env))]))
     ; later we may add things that are not expressions.	    ; later we may add things that are not expressions.
 
