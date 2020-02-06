@@ -22,6 +22,11 @@
       [lit-exp (datum) datum]
       [var-exp (id)
         (apply-env-with-global env id)]
+      [address (depth position)
+        (if (number? depth)
+          (apply-env env depth position
+            (lambda (v) v)
+            (eopl: error 'eval-exp "invalid var ~s ~s" depth position)))]
       [app-exp (rator rands)
         (let ([proc-value (eval-exp rator env)]
               [args (eval-rands rands env)])
@@ -57,6 +62,21 @@
         (closure-opt vars opt bodies env)]
       [begin-exp (bodies)
         (eval-bodies bodies env)]
+      [set!-address-exp (var exp)
+        (cases expression var
+          [address (depth position)
+            (set-box!
+              (if (number? depth)
+                (apply-env-ref env depth position
+                  (lambda (v) v)
+                  (lambda ()
+                    (eopl:error 'eval-exp "invalid address ~s ~s" depth position)))
+                (apply-env-ref env depth position
+                  (lambda (v) v)
+                  (lambda ()
+                    (eopl: error 'eval-exp "invalid variable in global ~s" position))))
+                 (eval-exp exp env))]
+            [else (eopl:error 'eval-exp "invalid address ~s ~s" depth position)])]
       [else (eopl:error 'eval-exp "Bad abstract syntax: ~s" exp)]))
 
 
@@ -94,15 +114,16 @@
     (cases proc-val proc-value
         [prim-proc (op) (apply-prim-proc op args)]
         [closure-standard (vars bodies env)
-          (eval-bodies bodies (extend-env (eval-rands vars env) (list->vector (map box args)) env))]
+          (eval-bodies bodies
+            (extend-env vars (list->vector (map box args)) env))]
         [closure-nonfixed (var bodies env)
-        (eval-bodies bodies (extend-env
-                              (eval-rands (list var) env)
-                              (list->vector (map box (cons args '())))
-                              env))]
+          (eval-bodies bodies (extend-env
+                                (list var)
+                                (list->vector (map box (cons args '())))
+                                env))]
         [closure-opt (vars opt bodies env)
           (eval-bodies bodies (extend-env
-                                      (eval-rands (append vars (list opt)) env)
+                                      (append vars (list opt))
                                       (list->vector (map box (append (take args vars-len) (list (drop args vars-len)))))
                                       env))]
         [else (error 'apply-proc
@@ -155,9 +176,13 @@
       ; no arguments
       [(newline) (check-length newline 0 args)]
       [(void) (check-length void 0 args)]
+      [(reset-global-env)
+        (check-length
+          (lambda ()
+            (set! global-env init-env)) 0 args)]
 
       ; 1 argument
-
+      [('quote) (check-length (lambda (x) x) 1 args)]
       [(add1) (check-length add1 1 args)]
       [(sub1) (check-length sub1 1 args)]
       [(zero?) (check-length zero? 1 args)]
@@ -236,10 +261,10 @@
   (lambda ()
     (display "--> ")
     ;; notice that we don't save changes to the environment...
-    (let ([answer (top-level-eval (parse-exp (read)))])
+    (let ([answer (top-level-eval (lexical-address (syntax-expand (parse-exp (read)))))])
       ;; TODO: are there answers that should display differently?
       (eopl:pretty-print answer) (newline)
       (rep))))  ; tail-recursive, so stack doesn't grow.
 
 (define eval-one-exp
-  (lambda (x) (top-level-eval (syntax-expand (parse-exp x)))))
+  (lambda (x) (top-level-eval (lexical-address (syntax-expand (parse-exp x))))))

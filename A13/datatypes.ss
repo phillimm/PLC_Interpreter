@@ -2,20 +2,23 @@
   [var-exp
    (var symbol?)]
   [lambda-exp
-    (vars (list-of lit-exp?))
+    (vars (list-of symbol?))
     (bodies (list-of expression?))]
   [lambda-nonfixed-exp
-    (var lit-exp?)
+    (var symbol?)
     (bodies (list-of expression?))]
   [lambda-opt-exp
-    (vars (list-of lit-exp?))
-    (opt lit-exp?)
+    (vars (list-of symbol?))
+    (opt symbol?)
     (bodies (list-of expression?))]
   [lit-exp
     (var literal?)]
   [set!-exp
-    (var lit-exp?)
+    (var symbol?)
     (exp expression?)]
+  [set!-address-exp
+    (var address?)
+    (body expression?)]
   [let-exp
     (vars (list-of expression?))
     (exps (list-of expression?))
@@ -63,6 +66,15 @@
   [define-exp
     (binding literal?)
     (body expression?)]
+  [address
+    (depth
+      (lambda (x)
+      (or (number? x)
+          (eqv? x 'free))))
+    (position
+      (lambda (x)
+        (or (number? x)
+            (symbol? x))))]
   [app-exp
    (rator expression?)
    (rands (list-of expression?))])
@@ -79,16 +91,16 @@
   [prim-proc
     (proc-name symbol?)]
   [closure-standard
-    (var (list-of lit-exp?))
+    (var (list-of symbol?))
     (bodies (list-of expression?))
     (env environment?)]
   [closure-nonfixed
-    (var (list-of lit-exp?))
+    (var (list-of symbol?))
     (bodies (list-of expression?))
     (env environment?)]
   [closure-opt
-    (vars (list-of expression?))
-    (opt-var lit-exp?)
+    (vars (list-of symbol?))
+    (opt-var symbol?)
     (bodies (list-of expression?))
     (env environment?)])
 
@@ -111,4 +123,9 @@
 (define (app-exp? x)
   (cases expression x
     [app-exp (rator rands) '#t]
+    [else '#f]))
+
+(define (address? x)
+  (case expression x
+    [address (depth position) '#t]
     [else '#f]))

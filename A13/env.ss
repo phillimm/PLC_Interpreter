@@ -73,8 +73,8 @@
                (lambda (v) v)
                (lambda () (eopl:error 'apply-env "variable ~s is not bound" sym)))))))
 
-(define (apply-env env sym pass fail)
-  (unbox (apply-env-ref env sym pass fail)))
+(define (apply-env env depth position pass fail)
+  (unbox (apply-env-ref env depth position pass fail)))
 
 (define apply-env-ref
   (lambda (env sym succeed fail) ; succeed and fail are "callback procedures,
@@ -83,6 +83,6 @@
         (fail)]
       [extended-env (syms vals env)
     		(let ((pos (list-find-position sym syms)))
-          	  (if (number? pos)
-        				(succeed (vector-ref vals pos))
-        				(apply-env-ref env sym succeed fail)))])))
+          	  (if (= 0 depth)
+        				(vector-ref vals position)
+        				(apply-env-ref env (- depth 1) position succeed fail)))])))

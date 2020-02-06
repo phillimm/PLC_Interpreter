@@ -36,17 +36,15 @@
           [(or (eqv? (car datum) 'let) (eqv? (car datum) 'let*) (eqv? (car datum) 'letrec))
               (parse-let datum)]
           [(eqv? (car datum) 'define)
-            (display "parse-define")
-            (define-exp (cadr datum) (parse-exp (caddr datum)))]
+            (parse-define datum)]
           [else (parse-app datum)])]
       [(literal? datum) (lit-exp datum)]
       [else (eopl:error 'parse-exp "bad expression: ~s" datum)])))
 
 (define (syntax-expand exp)
   (cases expression exp
-      [define-exp (var body)
-        (display "syntax-expand-define")
-          (define-exp var (syntax-expand body))]
+    [define-exp (binding body)
+      (define-exp binding (syntax-expand body))]
       [lambda-exp (vars bodies)
         (lambda-exp (map syntax-expand vars) (map syntax-expand bodies))]
       [lambda-nonfixed-exp (var bodies)
@@ -67,7 +65,7 @@
       [if-no-else-exp (condition then)
         (if-no-else-exp (syntax-expand condition) (syntax-expand then))]
       [begin-exp (bodies)
-    ;    (app-exp (lambda-exp (list ) (map syntax-expand bodies)) (list ))]
+      ;  (app-exp (lambda-exp (list ) (map syntax-expand bodies)) (list ))]
         (begin-exp (map syntax-expand bodies))]
       [or-exp (bodies)
         (syntax-expand-or bodies)]
@@ -83,6 +81,16 @@
         (syntax-expand-case test conditions else results)]
       [while-exp (test bodies)
         (syntax-expand-while test bodies)]
+     [app-exp (rator rands)
+              (cases expression rator
+                [var-exp (var)
+                  (if (c...r? (symbol->string var))
+                    (let ((str (symbol->string var)))
+                      (car (make-c...r (string->list (substring str 1 (- (string-length str) 1))) rands)))
+                      (app-exp (syntax-expand rator)
+                        (map syntax-expand rands)))]
+                [else (app-exp (syntax-expand rator)
+                               (map syntax-expand rands))])]
       [else exp]))
 
 
@@ -148,11 +156,14 @@
 
 (define (syntax-expand-or bodies)
   (cond [(null? bodies) (lit-exp #f)]
-        [else (syntax-expand (let-exp (list (lit-exp 'test))
+        [else (let-exp (list 'test)
                        (list (syntax-expand (car bodies)))
                        (list (if-else-exp (var-exp 'test)
                                           (var-exp 'test)
-                                          (syntax-expand-or (cdr bodies))))))]))
+                                          (syntax-expand-or (cdr bodies)))))]))
+
+(define (parse-define datum)
+  (define-exp (cadr datum) (parse-exp (caddr datum))))
 
 (define (parse-or datum)
   (or-exp (map parse-exp (cdr datum))))
@@ -265,7 +276,7 @@
               [(or (null? (cdr datum)) (null? (cddr datum)) (not (null? (cdddr datum))))
                 (eopl:error 'parse-exp "set!-expression: improper number of arguments ~s" datum)]
               [(not (symbol? (cadr datum))) (eopl:error 'parse-exp "set!-expression: id is not a symbol ~s" datum)]
-              [(null? (cdddr datum)) (set!-exp (lit-exp (cadr datum)) (parse-exp (caddr datum)))]
+              [(null? (cdddr datum)) (set!-exp (cadr datum) (parse-exp (caddr datum)))]
               [else (eopl:error 'parse-exp "set!-expression: too many arguments ~s" datum)]))
 
 
@@ -286,21 +297,21 @@
 
       ;let*
       [(eqv? (car datum) 'let*)
-        (let*-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
+        (let*-exp (map (lambda (x) (car x)) (cadr datum))
                      (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                      (map parse-exp (cddr datum)))]
       [(eqv? 'letrec (car datum))
-        (letrec-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
+        (letrec-exp (map (lambda (x) (car x)) (cadr datum))
                        (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                        (map parse-exp (cddr datum)))]
-      [else (let-exp (map (lambda (x) (lit-exp (car x))) (cadr datum))
+      [else (let-exp (map (lambda (x) (car x)) (cadr datum))
                      (map (lambda (x) (parse-exp (cadr x))) (cadr datum))
                      (map parse-exp (cddr datum)))])))
 
 (define (parse-named-let datum)
   (letrec-exp   (list (lit-exp (cadr datum)))
               (list (lambda-exp
-                (map (lambda (x) (lit-exp (car x))) (caddr datum))
+                (map (lambda (x) (car x)) (caddr datum))
                 (map parse-exp (cdddr datum))))
               (list (app-exp (var-exp (cadr datum))
                        (map (lambda (x) (parse-exp (cadr x))) (caddr datum))))))
@@ -327,8 +338,8 @@
           [(null? v) '()]
           [(not (symbol? (car v)))
             (eopl:error 'parse-exp "lambda argument list: formals must be symbols: ~s" v)]
-          [(symbol? (cdr v)) (list (lit-exp (car v)) (cdr v))]
-          [else (cons (lit-exp (car v)) (parse-vars (cdr v)))]))
+          [(symbol? (cdr v)) (list (car v) (cdr v))]
+          [else (cons (car v) (parse-vars (cdr v)))]))
 
 (define (parse-lambda datum)
     (cond
@@ -337,16 +348,16 @@
       [(null? (cadr datum))
         (lambda-exp (list ) (map parse-exp (cddr datum)))]
       [(symbol? (cadr datum))
-        (lambda-nonfixed-exp (lit-exp (cadr datum)) (map parse-exp (cddr datum)))]
+        (lambda-nonfixed-exp (cadr datum) (map parse-exp (cddr datum)))]
       [(list? (cadr datum))
         (if (andmap symbol? (cadr datum))
-            (lambda-exp (map lit-exp (cadr datum)) (map parse-exp (cddr datum)))
+            (lambda-exp (cadr datum) (map parse-exp (cddr datum)))
             (eopl:error 'parse-exp "lambda expression: formals must be symbols ~s" datum)
         )]
       [(pair? (cadr datum))
         (let ((l (reverse (parse-vars (cadr datum)))))
                           (lambda-opt-exp (reverse (cdr l))
-                            (lit-exp (car l))
+                            (car l)
                             (map parse-exp (cddr datum))))]
       [else (eopl:error 'parse-exp "lambda expression not valid: ~s" datum)]))
 
@@ -394,4 +405,12 @@
             (cons 'if (cons (unparse-exp condition)
                  (unparse-exp then)))]
           [app-exp (rator rands)
-            (cons (unparse-exp rator) (map unparse-exp rands))]))
+            (cases expression rator
+              [var-exp (var)
+                (if (c...r? (symbol->string var))
+                  (let ((str (symbol->string var)))
+                    (car (make-c...r (string->list (substring str 1 (- (string-length str) 1))) rands)))
+                    (app-exp (syntax-expand rator)
+                      (map syntax-expand rands)))]
+              [else (app-exp (syntax-expand rator)
+                             (map syntax-expand rands))]]))
