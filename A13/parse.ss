@@ -415,12 +415,12 @@
               [else (app-exp (syntax-expand rator)
                              (map syntax-expand rands))]]))
 
-                             (define syntax
-                               (list 'lambda 'let 'if 'set!))
+(define syntax
+  (list 'lambda 'let 'if 'set!))
 
-                             (define lexical-address
-                               (lambda (LcExp)
-                                 (lex-help LcExp '() 0)))
+(define lexical-address
+   (lambda (LcExp)
+           (lex-help LcExp '() 0)))
 
 ; lex-help
 ; keeps track of bound variables and their level as it descends
@@ -430,91 +430,75 @@
             [(not (pair? LcExp))
            	    (if (null? boundVars)
                  		(list ': 'free LcExp)
-                   		(let ([vars-and-d (car (filter-out-false (map (THISTHING LcExp) boundVars)))])
+                 		(let ([vars-and-d (car (filter-out-false (map (THISTHING LcExp) boundVars)))])
                    		  (if vars-and-d
                  		      (list ': (abs (- (cadr vars-and-d) depth)) (get-pos LcExp (car vars-and-d) 0))
                  		      (list ': 'free LcExp))))]
-                                        [(equal? 'lambda (car LcExp))
-                             	    (list 'lambda
-                             		  (second LcExp)
-                             		  (lex-help (third LcExp)
-                             			    (cons (list (second LcExp) (+ 1 depth)) boundVars)
-                             			    (+ 1 depth)
-                             			    ))]
-                                        [(equal? 'let (car LcExp))
-                                         (let ([firsts (get-firsts (cadr LcExp))]
-                                               [seconds (lex-list (get-seconds (cadr LcExp))
-                             				     boundVars
-                             				     depth)])
-
-                             		    (list 'let
-                             			  (map put-first-with-second
-                             			       firsts
-                             			       seconds)
-                             			       (lex-help (caddr LcExp)
-                             					 (cons (list firsts (+ 1 depth)) boundVars)
+            [(equal? 'lambda (car LcExp))
+           	    (list 'lambda
+                 		  (second LcExp)
+                 		  (lex-help (third LcExp)
+                       			    (cons (list (second LcExp) (+ 1 depth)) boundVars)
+                             			    (+ 1 depth)))]
+            [(equal? 'let (car LcExp))
+               (let ([firsts (get-firsts (cadr LcExp))]
+                     [seconds (lex-list (get-seconds (cadr LcExp)) boundVars depth)])
+                  (list 'let (map put-first-with-second firsts seconds)
+                             (lex-help (caddr LcExp)
+                             		       (cons (list firsts (+ 1 depth)) boundVars)
                              					 (+ 1 depth))))]
-                                        [(equal? 'if (car LcExp))
-                             	    (list 'if
-                             		  (lex-help (second LcExp) boundVars depth)
-                             		  (lex-help (third LcExp) boundVars depth)
-                             		  (lex-help (cadddr LcExp) boundVars depth))]
-                                        [(equal? 'set! (car LcExp))
-                                         (list 'set!
-                             		  (second LcExp)
-                             		  (lex-help (third LcExp)
-                             			    boundVars
-                             			    depth))]
-                             	   [else ; LcExp is not a member of syntax, apply lex-help to everything
-                             	    (lex-list LcExp boundVars depth)
-                             	     ])))
+            [(equal? 'if (car LcExp))
+               (list 'if (lex-help (second LcExp) boundVars depth)
+                         (lex-help (third LcExp) boundVars depth)
+                         (lex-help (cadddr LcExp) boundVars depth))]
+            [(equal? 'set! (car LcExp))
+               (list 'set! (second LcExp)
+                           (lex-help (third LcExp) boundVars depth))]
+            [else ; LcExp is not a member of syntax, apply lex-help to everything
+               (lex-list LcExp boundVars depth)])))
 
-                             (define put-first-with-second
-                               (lambda (first second)
-                                 (if (null? first)
-                                     '()
-                                     (list first second))))
+(define put-first-with-second
+  (lambda (first second)
+     (if (null? first)
+         '()
+         (list first second))))
 
-                             (define filter-out-false
-                               (lambda (lst)
-                                 (if (null? lst)
-                             	'(#f)
-                             	(if (not (car lst))
-                             	    (filter-out-false (rest lst))
-                             	    (list (car lst))))))
+(define filter-out-false
+   (lambda (lst)
+       (if (null? lst)
+          	'(#f)
+          	(if (not (car lst))
+           	    (filter-out-false (rest lst))
+           	    (list (car lst))))))
 
-                             (define THISTHING
-                               (lambda (LcExp) (lambda (vars-and-d) (WORK LcExp vars-and-d))))
+(define THISTHING
+   (lambda (LcExp) (lambda (vars-and-d) (WORK LcExp vars-and-d))))
 
-                             (define WORK
-                               (lambda (LcExp vars-and-d)
-                                 (if (member LcExp (car vars-and-d)) vars-and-d #f)))
+(define WORK
+  (lambda (LcExp vars-and-d)
+     (if (member LcExp (car vars-and-d)) vars-and-d #f)))
 
-                             (define (lex-list lst boundVars depth)
-                               (if (null? lst)
-                                   '()
-                                   (cons (lex-help (first lst)
-                             		      boundVars
-                             		      depth)
-                             	    (lex-list (rest lst)
-                             		      boundVars
-                             		      depth))))
+(define (lex-list lst boundVars depth)
+  (if (null? lst)
+     '()
+     (cons (lex-help (first lst) boundVars depth)
+         (lex-list (rest lst boundVars depth))))
 
-                             (define (get-pos item lst pos)
-                               (if (eq? (car lst) item)
-                                   pos
-                                   (get-pos item (cdr lst) (+ pos 1))))
+(define (get-pos item lst pos)
+   (if (eq? (car lst) item)
+       pos
+      (get-pos item (cdr lst) (+ pos 1))))
 
-                             (define get-seconds
-                               (lambda (lol)
-                                 (let ((result '()))
-                                   (if (null? lol)
-                                       result
-                                       (cons (cadar lol) (get-seconds (cdr lol)))))))
+(define get-seconds
+  (lambda (lol)
+     (let ((result '()))
+         (if (null? lol)
+             result
+             (cons (cadar lol) (get-seconds (cdr lol)))))))
 
-                             (define get-firsts
-                               (lambda (lol)
-                                 (let ((result '()))
-                                   (if (null? lol)
-                                       result
-                                       (cons (caar lol) (get-firsts (cdr lol)))))))
+(define get-firsts
+   (lambda (lol)
+     (let ((result '()))
+         (if (null? lol)
+             result
+           (cons (caar lol) (get-firsts (cdr lol)))))))
