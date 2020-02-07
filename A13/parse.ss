@@ -350,13 +350,12 @@
       [(symbol? (cadr datum))
         (lambda-nonfixed-exp (cadr datum) (map parse-exp (cddr datum)))]
       [(list? (cadr datum))
-        (if (andmap symbol? (cadr datum))
-            (lambda-exp (cadr datum)
+            (lambda-exp
               (map (lambda (x)
                       (if (symbol? x)
                         x
-                        (ref-exp (cadr x)))) (cddr datum))
-              (map parse-exp (cddr datum))))]
+                        (ref-exp (cadr x)))) (cadr datum))
+              (map parse-exp (cddr datum)))]
       [(pair? (cadr datum))
         (let ((l (reverse (parse-vars (cadr datum)))))
                           (lambda-opt-exp (reverse (cdr l))

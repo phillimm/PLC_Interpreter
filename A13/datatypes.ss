@@ -20,15 +20,15 @@
     (var address?)
     (body expression?)]
   [let-exp
-    (vars (list-of expression?))
+    (vars (list-of symbol?))
     (exps (list-of expression?))
     (bodies (list-of expression?))]
   [letrec-exp
-    (vars (list-of expression?))
+    (vars (list-of symbol?))
     (exps (list-of expression?))
     (bodies (list-of expression?))]
   [let*-exp
-    (vars (list-of expression?))
+    (vars (list-of symbol?))
     (exps (list-of expression?))
     (bodies (list-of expression?))]
   [if-else-exp
@@ -106,7 +106,7 @@
     (bodies (list-of expression?))
     (env environment?)])
 
-(define (sym-or-ref? x)
+(define (sym-ref? x)
   (or (symbol? x) (ref-exp? x)))
 
 (define scheme-value?

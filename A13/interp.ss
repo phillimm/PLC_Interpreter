@@ -121,7 +121,7 @@
                         (lambda (v) v)
                         (lambda ()
                           (eopl:error 'eval-exp "invalid address ~s ~s" depth position)))
-                      (applyl-env-ref position
+                      (apply-global-env-ref position
                         (lambda (v) v)
                         (lambda ()
                           (eopl:error 'eval-exp "inalid var  in  global ~s" position))))]
