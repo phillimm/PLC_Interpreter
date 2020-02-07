@@ -417,6 +417,13 @@
               [else (app-exp (syntax-expand rator)
                              (map syntax-expand rands))])]))
 
+(define first car)
+(define rest cdr)
+(define (last lst)
+  (car (reverse lst)))
+(define second cadr)
+(define third caddr)
+
 (define syntax
   (list 'lambda 'let 'if 'set!))
 
