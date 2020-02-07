@@ -46,11 +46,11 @@
     [define-exp (binding body)
       (define-exp binding (syntax-expand body))]
       [lambda-exp (vars bodies)
-        (lambda-exp (map syntax-expand vars) (map syntax-expand bodies))]
+        (lambda-exp vars (map syntax-expand bodies))]
       [lambda-nonfixed-exp (var bodies)
         (lambda-nonfixed-exp var (map syntax-expand bodies))]
       [lambda-opt-exp (vars opt bodies)
-        (lambda-opt-exp (map syntax-expand vars) opt (map syntax-expand bodies))]
+        (lambda-opt-exp vars opt (map syntax-expand bodies))]
       [set!-exp (var exp)
         (set!-exp var (syntax-expand exp))]
       [let-exp (vars exps bodies)
@@ -309,7 +309,7 @@
                      (map parse-exp (cddr datum)))])))
 
 (define (parse-named-let datum)
-  (letrec-exp   (list (lit-exp (cadr datum)))
+  (letrec-exp (list (lit-exp (cadr datum)))
               (list (lambda-exp
                 (map (lambda (x) (car x)) (caddr datum))
                 (map parse-exp (cdddr datum))))
