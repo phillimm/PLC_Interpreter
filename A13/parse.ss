@@ -351,9 +351,12 @@
         (lambda-nonfixed-exp (cadr datum) (map parse-exp (cddr datum)))]
       [(list? (cadr datum))
         (if (andmap symbol? (cadr datum))
-            (lambda-exp (cadr datum) (map parse-exp (cddr datum)))
-            (eopl:error 'parse-exp "lambda expression: formals must be symbols ~s" datum)
-        )]
+            (lambda-exp (cadr datum)
+              (map (lambda (x)
+                      (if (symbol? x)
+                        x
+                        (ref-exp (cadr x)))) (cddr datum))
+              (map parse-exp (cddr datum))))]
       [(pair? (cadr datum))
         (let ((l (reverse (parse-vars (cadr datum)))))
                           (lambda-opt-exp (reverse (cdr l))
@@ -413,7 +416,7 @@
                     (app-exp (syntax-expand rator)
                       (map syntax-expand rands)))]
               [else (app-exp (syntax-expand rator)
-                             (map syntax-expand rands))]]))
+                             (map syntax-expand rands))])]))
 
 (define syntax
   (list 'lambda 'let 'if 'set!))
@@ -482,7 +485,7 @@
   (if (null? lst)
      '()
      (cons (lex-help (first lst) boundVars depth)
-         (lex-list (rest lst boundVars depth))))
+         (lex-list (rest lst boundVars depth)))))
 
 (define (get-pos item lst pos)
    (if (eq? (car lst) item)
@@ -502,3 +505,23 @@
          (if (null? lol)
              result
            (cons (caar lol) (get-firsts (cdr lol)))))))
+
+(define (c...r? str)
+   (let ((len (string-length str)))
+     (and (eqv? #\c (string-ref str 0))
+         (eqv? #\r (string-ref str (- len 1)))
+             (andmap (lambda (x) (or (eqv? #\d x) (eqv? #\a x)))
+                 (string->list (substring str 1 (- len 1)))))))
+
+(define compose
+  (case-lambda
+    [() (lambda (x) x)]
+    [(first . rest)
+    (let ([composed-rest (apply compose rest)])
+        (lambda (x) (first (composed-rest x))))]))
+
+(define (make-c...r str)
+    (let ((len (string-length str)))
+          (apply compose (map (lambda (x)
+             (if (equal? x #\a) car cdr))
+                    (string->list (substring str 1 (- len 1)))))))

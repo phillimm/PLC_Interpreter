@@ -2,7 +2,7 @@
   [var-exp
    (var symbol?)]
   [lambda-exp
-    (vars (list-of symbol?))
+    (vars (list-of sym-ref?))
     (bodies (list-of expression?))]
   [lambda-nonfixed-exp
     (var symbol?)
@@ -75,6 +75,8 @@
       (lambda (x)
         (or (number? x)
             (symbol? x))))]
+  [ref-exp
+    (id symbol?)]
   [app-exp
    (rator expression?)
    (rands (list-of expression?))])
@@ -91,7 +93,7 @@
   [prim-proc
     (proc-name symbol?)]
   [closure-standard
-    (var (list-of symbol?))
+    (var (list-of sym-ref?))
     (bodies (list-of expression?))
     (env environment?)]
   [closure-nonfixed
@@ -104,7 +106,8 @@
     (bodies (list-of expression?))
     (env environment?)])
 
-
+(define (sym-or-ref? x)
+  (or (symbol? x) (ref-exp? x)))
 
 (define scheme-value?
   (lambda (x) #t))
@@ -119,6 +122,11 @@
     [lit-exp (id) '#t]
     [else '#f]))
 
+(define (ref-exp? x)
+  (cases expression x
+    [ref-exp (id) '#t]
+    [else '#f]))
+
 
 (define (app-exp? x)
   (cases expression x
@@ -126,6 +134,6 @@
     [else '#f]))
 
 (define (address? x)
-  (case expression x
+  (cases expression x
     [address (depth position) '#t]
     [else '#f]))

@@ -28,9 +28,9 @@
             (lambda (v) v)
             (eopl: error 'eval-exp "invalid var ~s ~s" depth position)))]
       [app-exp (rator rands)
-        (let ([proc-value (eval-exp rator env)]
-              [args (eval-rands rands env)])
-          (apply-proc proc-value args))]
+        (let ([proc-value (eval-exp rator env)])
+        ;      [args (eval-rands rands env)])
+          (apply-proc proc-value rands args))]
       [if-else-exp (condition then else)
         (if (eval-exp condition env)
             (eval-exp then env)
@@ -109,26 +109,47 @@
     ls
     (drop (cdr ls) (- num 1))))
 
-(define apply-proc
-  (lambda (proc-value args)
+(define (eval-ref vars args env)
+  (map (lambda (x y)
+          (if (expression? y)
+            (cases expression y
+              [ref-exp (id)
+                (cases expression x
+                  [address (depth position)
+                    (if (number? depth)
+                      (apply-env-ref env depth position
+                        (lambda (v) v)
+                        (lambda ()
+                          (eopl:error 'eval-exp "invalid address ~s ~s" depth position)))
+                      (applyl-env-ref position
+                        (lambda (v) v)
+                        (lambda ()
+                          (eopl:error 'eval-exp "inalid var  in  global ~s" position))))]
+                    [else (box (eval-exp x env))])]
+                [else (eopl:error 'apply-pro "invalid exp ~s" y)])
+              (box (eval-exp x env)))) args vars))
+
+(define (apply-proc proc-value args rand-env)
     (cases proc-val proc-value
-        [prim-proc (op) (apply-prim-proc op args)]
+        [prim-proc (op) (apply-prim-proc op (eval-rands args rand-env) rand-env)]
         [closure-standard (vars bodies env)
           (eval-bodies bodies
-            (extend-env vars (list->vector (map box args)) env))]
+            (extended-env '() (list->vector (eval-ref vars args rand-env)) env))]
         [closure-nonfixed (var bodies env)
           (eval-bodies bodies (extend-env
                                 (list var)
-                                (list->vector (map box (cons args '())))
+                                (list->vector (map box (cons (eval-rands args rand-env) '())))
                                 env))]
         [closure-opt (vars opt bodies env)
           (eval-bodies bodies (extend-env
                                       (append vars (list opt))
-                                      (list->vector (map box (append (take args vars-len) (list (drop args vars-len)))))
+                                      (list->vector
+                                        (map box (append (take (eval-rands args rand-env) vars-len)
+                                                         (list (drop (eval-rands args rand-env) vars-len)))))
                                       env))]
-        [else (error 'apply-proc
+        [else (eopl:error 'apply-proc
                      "Attempt to apply bad procedure: ~s"
-                      proc-value)])))
+                      proc-value)]))
 
 (define *prim-proc-names* '(+ - * / = > < <= >= add1 sub1 zero? cons car cdr list null? assq eq? eqv?
       equal? atom? length list->vector list? pair? procedure? vector->list vector
@@ -152,7 +173,7 @@
     (apply proc args)
     (eopl:error prim-proc "improper number of argumments")))
 
-(define (apply-prim-proc prim-proc args)
+(define (apply-prim-proc prim-proc args env)
   (let ((proc (symbol->string prim-proc)))
     (if (c...r? proc)
       ((make-c...r proc) (car args))
@@ -225,10 +246,10 @@
                                                     (c...r? (symbol->string x)))))
                                       1 args)]
       [(apply) (if (= (length args) 2)
-                (apply-proc (car args) (cadr args))
+                (apply-proc (car args) (map lit-exp (cadr args)))
                 (eopl:error prim-proc "improper number of argumments"))]
       [(map) (if (= (length args) 2)
-              (map-proc (car args) (cadr args))
+              (map-proc (car args) (map lit-exp (cadr args)))
               (eopl:error prim-proc "improper number of argumments"))]
       [else (eopl:error 'apply-prim-proc "Bad primitive procedure name: ~s" prim-proc)]))))
 
@@ -252,10 +273,10 @@
                               (if (equal? x #\a) car cdr))
                            (string->list (substring str 1 (- len 1)))))))
 
-(define (map-proc proc args)
+(define (map-proc proc args env)
    (cond
      [(null? args) '()]
-     [else (cons (apply-proc proc (list (car args))) (map-proc proc (cdr args)))]))
+     [else (cons (apply-proc proc (list (car args)) env) (map-proc proc (cdr args) env))]))
 
 (define rep      ; "read-eval-print" loop.
   (lambda ()
