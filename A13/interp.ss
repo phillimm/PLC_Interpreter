@@ -31,9 +31,9 @@
             (lambda (v) v)
             (lambda () (eopl:error 'eval-exp "invalid var ~s" position))))]
       [app-exp (rator rands)
-        (let ([proc-value (eval-exp rator env)])
-        ;      [args (eval-rands rands env)])
-          (apply-proc proc-value rands env))]
+      ;  (let ([proc-value (eval-exp rator env)]
+            ;  [args (eval-rands rands env)])
+          (apply-proc (eval-exp rator env) (eval-rands rands env) env)]
       [if-else-exp (condition then else)
         (if (eval-exp condition env)
             (eval-exp then env)
@@ -127,9 +127,9 @@
                       (apply-global-env-ref position
                         (lambda (v) v)
                         (lambda ()
-                          (eopl:error 'eval-exp "inalid var  in  global ~s" position))))]
+                          (eopl:error 'eval-exp "inalid var in global ~s" position))))]
                     [else (box (eval-exp x env))])]
-                [else (eopl:error 'apply-pro "invalid exp ~s" y)])
+                [else (eopl:error 'apply-proc "invalid exp ~s" y)])
               (box (eval-exp x env)))) args vars))
 
 (define (apply-proc proc-value args rand-env)
