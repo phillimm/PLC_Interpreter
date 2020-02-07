@@ -89,7 +89,9 @@
 
 (define (eval-rands rands env)
     (map (lambda (e)
-            (eval-exp e env)) rands))
+        (if (proc-type? e)
+          e
+          (eval-exp e env))) rands))
 
 (define (eval-bodies bodies env)
   (cond [(null? (cdr bodies))
