@@ -418,7 +418,7 @@
                              (map syntax-expand rands))])]))
 
 (define first car)
-(define rest cdr)
+;(define rest cdr)
 (define (last lst)
   (car (reverse lst)))
 (define second cadr)
@@ -477,7 +477,7 @@
        (if (null? lst)
           	'(#f)
           	(if (not (car lst))
-           	    (filter-out-false (rest lst))
+           	    (filter-out-false (cdr lst))
            	    (list (car lst))))))
 
 (define THISTHING
@@ -491,7 +491,7 @@
   (if (null? lst)
      '()
      (cons (lex-help (first lst) boundVars depth)
-         (lex-list (rest lst boundVars depth)))))
+         (lex-list ((cdr lst) boundVars depth)))))
 
 (define (get-pos item lst pos)
    (if (eq? (car lst) item)
