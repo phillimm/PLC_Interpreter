@@ -33,7 +33,9 @@
       [app-exp (rator rands)
       ;  (let ([proc-value (eval-exp rator env)]
             ;  [args (eval-rands rands env)])
-          (apply-proc (eval-exp rator env) (eval-rands rands env) env)]
+          (if (proc-type? rator)
+            (apply-proc rator (eval-rands rands env) env)
+            (apply-proc (eval-exp rator env) (eval-rands rands env) env))]
       [if-else-exp (condition then else)
         (if (eval-exp condition env)
             (eval-exp then env)
