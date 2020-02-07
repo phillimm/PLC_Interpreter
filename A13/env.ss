@@ -56,6 +56,8 @@
 		 (+ 1 list-index-r)
 		 #f))))))
 
+(define (apply-global-env sym pass fail)
+       (unbox (apply-global-env-ref sym pass fail)))
 
 (define (apply-env-with-global env sym)
    (unbox (apply-env-ref-with-global env sym)))

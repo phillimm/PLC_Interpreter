@@ -26,11 +26,14 @@
         (if (number? depth)
           (apply-env env depth position
             (lambda (v) v)
-            (eopl: error 'eval-exp "invalid var ~s ~s" depth position)))]
+            (eopl:error 'eval-exp "invalid var ~s ~s" depth position))
+          (apply-global-env position
+            (lambda (v) v)
+            (lambda () (eopl:error 'eval-exp "invalid var ~s" position))))]
       [app-exp (rator rands)
         (let ([proc-value (eval-exp rator env)])
         ;      [args (eval-rands rands env)])
-          (apply-proc proc-value rands args))]
+          (apply-proc proc-value rands env))]
       [if-else-exp (condition then else)
         (if (eval-exp condition env)
             (eval-exp then env)
@@ -71,10 +74,10 @@
                   (lambda (v) v)
                   (lambda ()
                     (eopl:error 'eval-exp "invalid address ~s ~s" depth position)))
-                (apply-env-ref env depth position
+                (apply-global-env-ref position
                   (lambda (v) v)
                   (lambda ()
-                    (eopl: error 'eval-exp "invalid variable in global ~s" position))))
+                    (eopl:error 'eval-exp "invalid variable in global ~s" position))))
                  (eval-exp exp env))]
             [else (eopl:error 'eval-exp "invalid address ~s ~s" depth position)])]
       [else (eopl:error 'eval-exp "Bad abstract syntax: ~s" exp)]))
@@ -134,7 +137,7 @@
         [prim-proc (op) (apply-prim-proc op (eval-rands args rand-env) rand-env)]
         [closure-standard (vars bodies env)
           (eval-bodies bodies
-            (extended-env '() (list->vector (eval-ref vars args rand-env)) env))]
+            (extend-env '() (list->vector (eval-ref vars args rand-env)) env))]
         [closure-nonfixed (var bodies env)
           (eval-bodies bodies (extend-env
                                 (list var)

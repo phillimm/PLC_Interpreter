@@ -417,100 +417,47 @@
               [else (app-exp (syntax-expand rator)
                              (map syntax-expand rands))])]))
 
-(define first car)
-;(define rest cdr)
-(define (last lst)
-  (car (reverse lst)))
-(define second cadr)
-(define third caddr)
+(define (change-symbol map s)
+  (cond
+    ((null? map) (address 'free s))
+    ((eqv? s (caar map)) (address (cadar map) (caddar map)))
+    (else (change-symbol (cdr map) s))))
 
-(define syntax
-  (list 'lambda 'let 'if 'set!))
+(define (map-symbols ls p)
+  (cond
+    [(null? ls) '()]
+    [(pair? (car ls)) (cons (list (cadar ls) 0 p) (map-symbols (cdr ls) (+ 1 p)))]
+    (else (cons (list (car ls) '0 p) (map-symbols (cdr ls) (+ 1 p))))))
 
-(define lexical-address
-   (lambda (LcExp)
-           (lex-help LcExp '() 0)))
-
-; lex-help
-; keeps track of bound variables and their level as it descends
-(define lex-help
-  (lambda (LcExp boundVars depth)
-     (cond  [(null? LcExp) '()]
-            [(not (pair? LcExp))
-           	    (if (null? boundVars)
-                 		(list ': 'free LcExp)
-                 		(let ([vars-and-d (car (filter-out-false (map (THISTHING LcExp) boundVars)))])
-                   		  (if vars-and-d
-                 		      (list ': (abs (- (cadr vars-and-d) depth)) (get-pos LcExp (car vars-and-d) 0))
-                 		      (list ': 'free LcExp))))]
-            [(equal? 'lambda (car LcExp))
-           	    (list 'lambda
-                 		  (second LcExp)
-                 		  (lex-help (third LcExp)
-                       			    (cons (list (second LcExp) (+ 1 depth)) boundVars)
-                             			    (+ 1 depth)))]
-            [(equal? 'let (car LcExp))
-               (let ([firsts (get-firsts (cadr LcExp))]
-                     [seconds (lex-list (get-seconds (cadr LcExp)) boundVars depth)])
-                  (list 'let (map put-first-with-second firsts seconds)
-                             (lex-help (caddr LcExp)
-                             		       (cons (list firsts (+ 1 depth)) boundVars)
-                             					 (+ 1 depth))))]
-            [(equal? 'if (car LcExp))
-               (list 'if (lex-help (second LcExp) boundVars depth)
-                         (lex-help (third LcExp) boundVars depth)
-                         (lex-help (cadddr LcExp) boundVars depth))]
-            [(equal? 'set! (car LcExp))
-               (list 'set! (second LcExp)
-                           (lex-help (third LcExp) boundVars depth))]
-            [else ; LcExp is not a member of syntax, apply lex-help to everything
-               (lex-list LcExp boundVars depth)])))
-
-(define put-first-with-second
-  (lambda (first second)
-     (if (null? first)
-         '()
-         (list first second))))
-
-(define filter-out-false
-   (lambda (lst)
-       (if (null? lst)
-          	'(#f)
-          	(if (not (car lst))
-           	    (filter-out-false (cdr lst))
-           	    (list (car lst))))))
-
-(define THISTHING
-   (lambda (LcExp) (lambda (vars-and-d) (WORK LcExp vars-and-d))))
-
-(define WORK
-  (lambda (LcExp vars-and-d)
-     (if (member LcExp (car vars-and-d)) vars-and-d #f)))
-
-(define (lex-list lst boundVars depth)
-  (if (null? lst)
-     '()
-     (cons (lex-help (first lst) boundVars depth)
-         (lex-list ((cdr lst) boundVars depth)))))
-
-(define (get-pos item lst pos)
-   (if (eq? (car lst) item)
-       pos
-      (get-pos item (cdr lst) (+ pos 1))))
-
-(define get-seconds
-  (lambda (lol)
-     (let ((result '()))
-         (if (null? lol)
-             result
-             (cons (cadar lol) (get-seconds (cdr lol)))))))
-
-(define get-firsts
-   (lambda (lol)
-     (let ((result '()))
-         (if (null? lol)
-             result
-           (cons (caar lol) (get-firsts (cdr lol)))))))
+(define (lexical-address datum)
+  (let lex ((addresses '()) (datum datum))
+    (cases expression datum
+       [define-exp (var body) (define-exp var (lex addresses body))]
+       [begin-exp (bodies) (begin-exp (map (lambda (x) (lex addresses x)) bodies))]
+       [var-exp (id) (change-symbol addresses id)]
+       [lit-exp (num) (lit-exp num)] ;just showing that this is a possible expression at this point
+       [app-exp (rator rands)
+            (app-exp (lex addresses rator) (map (lambda (x) (lex addresses x)) rands))]
+       [set!-exp (var exp) (set!-address-exp (change-symbol addresses var) (lex addresses exp))]
+       [if-no-else-exp (test then) (if-then-exp (lex addresses test) (lex addresses then))]
+       [if-else-exp (test then else) (if-else-exp (lex addresses test) (lex addresses then) (lex addresses else))]
+       [lambda-exp (vars bodies)
+          (lambda-exp vars
+             (map (lambda (x) (lex (append (map-symbols vars 0)
+                    (map (lambda (x)
+                        (list (car x) (+ 1 (cadr x)) (caddr x))) addresses)) x))
+                              bodies))]
+        [lambda-nonfixed-exp (var bodies)
+            (lambda-nonfixed-exp vars
+              (map (lambda (x) (lex (cons  (list var 0 0)
+                                         (map (lambda (x)
+                                               (list (car x) (+ 1 (cadr x)) (caddr x))) addresses)) x)) bodies))]
+        [lambda-opt-exp (vars opt bodies)
+            (lambda-opt-exp vars
+                (map (lambda (x) (lex (append (map-symbols (append vars (list opt)) 0)
+                      (map (lambda (x)
+                        (list (car x) (+ 1 (cadr x)) (caddr x))) addresses)) x)) bodies))]
+        [else (eopl:error 'lexical-address "invalid datum ~s" datum)])))
 
 (define (c...r? str)
    (let ((len (string-length str)))
