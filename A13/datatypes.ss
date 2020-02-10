@@ -69,14 +69,14 @@
   [address
     (depth
       (lambda (x)
-      (or (number? x)
-          (eqv? x 'free))))
+        (or (number? x)
+            (eqv? x 'free))))
     (position
       (lambda (x)
         (or (number? x)
             (symbol? x))))]
-  [ref-exp
-    (id symbol?)]
+  ;[ref-exp
+  ;  (id symbol?)]
   [app-exp
    (rator expression?)
    (rands (list-of expression?))])
@@ -93,7 +93,7 @@
   [prim-proc
     (proc-name symbol?)]
   [closure-standard
-    (var (list-of sym-ref?))
+    (var (list-of symbol?))
     (bodies (list-of expression?))
     (env environment?)]
   [closure-nonfixed

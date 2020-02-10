@@ -43,8 +43,8 @@
 
 (define (syntax-expand exp)
   (cases expression exp
-    [define-exp (binding body)
-      (define-exp binding (syntax-expand body))]
+      [define-exp (binding body)
+        (define-exp binding (syntax-expand body))]
       [lambda-exp (vars bodies)
         (lambda-exp vars (map syntax-expand bodies))]
       [lambda-nonfixed-exp (var bodies)
@@ -68,7 +68,7 @@
       ;  (app-exp (lambda-exp (list ) (map syntax-expand bodies)) (list ))]
         (begin-exp (map syntax-expand bodies))]
       [or-exp (bodies)
-        (syntax-expand-or bodies)]
+        (syntax-expand (syntax-expand-or bodies))]
       [cond-no-else-exp (conditions results)
         (syntax-expand-cond conditions '() results)]
       [cond-else-exp (conditions else results)
@@ -81,16 +81,15 @@
         (syntax-expand-case test conditions else results)]
       [while-exp (test bodies)
         (syntax-expand-while test bodies)]
-     [app-exp (rator rands)
-              (cases expression rator
-                [var-exp (var)
-                  (if (c...r? (symbol->string var))
-                    (let ((str (symbol->string var)))
-                      (car (make-c...r (string->list (substring str 1 (- (string-length str) 1))) rands)))
-                      (app-exp (syntax-expand rator)
-                        (map syntax-expand rands)))]
-                [else (app-exp (syntax-expand rator)
-                               (map syntax-expand rands))])]
+      [app-exp (rator rands)
+      ;  (cases expression rator
+      ;      [var-exp (id)
+      ;        (if (c...r? (symbol->string id))
+      ;          (let ((str (symbol->string id)))
+      ;            (car (make-c...r (string->list (substring str 1 (- (string-length str) 1))) rands)))
+      ;          (app-exp (syntax-expand rator) (map syntax-expand rands)))]
+      ;      [else (app-exp (syntax-expand rator) (map syntax-expand rands))])]
+        (app-exp (syntax-expand rator) (map syntax-expand rands))]
       [else exp]))
 
 
@@ -309,7 +308,7 @@
                      (map parse-exp (cddr datum)))])))
 
 (define (parse-named-let datum)
-  (letrec-exp (list (lit-exp (cadr datum)))
+  (letrec-exp (list (cadr datum))
               (list (lambda-exp
                 (map (lambda (x) (car x)) (caddr datum))
                 (map parse-exp (cdddr datum))))
@@ -349,16 +348,11 @@
         (lambda-exp (list ) (map parse-exp (cddr datum)))]
       [(symbol? (cadr datum))
         (lambda-nonfixed-exp (cadr datum) (map parse-exp (cddr datum)))]
-      [(list? (cadr datum))
-            (lambda-exp
-              (map (lambda (x)
-                      (if (symbol? x)
-                        x
-                        (ref-exp (cadr x)))) (cadr datum))
-              (map parse-exp (cddr datum)))]
+      [(list? (cadr datum)) (lambda-exp (cadr datum) (map parse-exp (cddr datum)))]
       [(pair? (cadr datum))
-        (let ((l (reverse (parse-vars (cadr datum)))))
-                          (lambda-opt-exp (reverse (cdr l))
+          (let ((l (reverse (parse-vars (cadr datum)))))
+              (lambda-opt-exp (reverse (cdr l))
+                            (- (length l) 1)
                             (car l)
                             (map parse-exp (cddr datum))))]
       [else (eopl:error 'parse-exp "lambda expression not valid: ~s" datum)]))
@@ -439,7 +433,7 @@
        [app-exp (rator rands)
             (app-exp (lex addresses rator) (map (lambda (x) (lex addresses x)) rands))]
        [set!-exp (var exp) (set!-address-exp (change-symbol addresses var) (lex addresses exp))]
-       [if-no-else-exp (test then) (if-then-exp (lex addresses test) (lex addresses then))]
+       [if-no-else-exp (test then) (if-no-else-exp (lex addresses test) (lex addresses then))]
        [if-else-exp (test then else) (if-else-exp (lex addresses test) (lex addresses then) (lex addresses else))]
        [lambda-exp (vars bodies)
           (lambda-exp vars
@@ -458,23 +452,22 @@
                       (map (lambda (x)
                         (list (car x) (+ 1 (cadr x)) (caddr x))) addresses)) x)) bodies))]
         [else (eopl:error 'lexical-address "invalid datum ~s" datum)])))
+        (define (c...r? str)
+          (let ((len (string-length str)))
+            (and (eqv? #\c (string-ref str 0))
+              (eqv? #\r (string-ref str (- len 1)))
+                (andmap (lambda (x) (or (eqv? #\d x) (eqv? #\a x)))
+                  (string->list (substring str 1 (- len 1)))))))
 
-(define (c...r? str)
-   (let ((len (string-length str)))
-     (and (eqv? #\c (string-ref str 0))
-         (eqv? #\r (string-ref str (- len 1)))
-             (andmap (lambda (x) (or (eqv? #\d x) (eqv? #\a x)))
-                 (string->list (substring str 1 (- len 1)))))))
+        (define compose
+           (case-lambda
+               [() (lambda (x) x)]
+               [(first . rest)
+               (let ([composed-rest (apply compose rest)])
+                 (lambda (x) (first (composed-rest x))))]))
 
-(define compose
-  (case-lambda
-    [() (lambda (x) x)]
-    [(first . rest)
-    (let ([composed-rest (apply compose rest)])
-        (lambda (x) (first (composed-rest x))))]))
-
-(define (make-c...r str)
-    (let ((len (string-length str)))
-          (apply compose (map (lambda (x)
-             (if (equal? x #\a) car cdr))
-                    (string->list (substring str 1 (- len 1)))))))
+        (define (make-c...r str)
+           (let ((len (string-length str)))
+               (apply compose (map (lambda (x)
+                                      (if (equal? x #\a) car cdr))
+                                   (string->list (substring str 1 (- len 1)))))))
