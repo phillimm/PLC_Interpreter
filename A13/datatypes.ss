@@ -1,14 +1,16 @@
 (define-datatype expression expression?
   [var-exp
    (var symbol?)]
+  [ref-exp
+    (id symbol?)]
   [lambda-exp
     (vars (list-of sym-ref?))
     (bodies (list-of expression?))]
   [lambda-nonfixed-exp
-    (var symbol?)
+    (var sym-ref?)
     (bodies (list-of expression?))]
   [lambda-opt-exp
-    (vars (list-of symbol?))
+    (vars (list-of sym-ref?))
     (opt symbol?)
     (bodies (list-of expression?))]
   [lit-exp
@@ -93,15 +95,15 @@
   [prim-proc
     (proc-name symbol?)]
   [closure-standard
-    (var (list-of symbol?))
+    (var (list-of sym-ref?))
     (bodies (list-of expression?))
     (env environment?)]
   [closure-nonfixed
-    (var (list-of symbol?))
+    (var (list-of sym-ref?))
     (bodies (list-of expression?))
     (env environment?)]
   [closure-opt
-    (vars (list-of symbol?))
+    (vars (list-of sym-ref?))
     (opt-var symbol?)
     (bodies (list-of expression?))
     (env environment?)])

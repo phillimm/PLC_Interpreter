@@ -32,9 +32,9 @@
             (lambda (v) v)
             (lambda () (eopl:error 'eval-exp "invalid var ~s" position))))]
       [app-exp (rator rands)
-          (let ([proc-value (eval-exp rator env)]
-                  [args (eval-rands rands env)])
-                (apply-proc proc-value args env))]
+          (let ([proc-value (eval-exp rator env)])
+          ;        [args (eval-rands rands env)])
+                (apply-proc proc-value rands env))]
       [if-else-exp (condition then else)
         (if (eval-exp condition env)
             (eval-exp then env)
@@ -100,22 +100,43 @@
     (drop (cdr ls) (- num 1))))
 
 
-(define (apply-proc proc-value args rand-env)
-    (cases proc-val proc-value
-        [prim-proc (op) (apply-prim-proc op args rand-env)]
+    (define (eval-ref-params vars args env)
+      (map (lambda (x y)
+              (if (expression? y)
+                  (cases expression y
+                    [ref-exp (id)
+                      (cases expression x
+                        [address (depth position)
+                          (if (number? depth)
+                            (apply-env-ref env depth position
+                              (lambda (v) v)
+                              (lambda ()
+                                (eopl:error 'eval-exp "invalid address ~s ~s" depth position)))
+                            (apply-global-env-ref position
+                              (lambda (v) v)
+                                (lambda () (eopl:error 'eval-exp "invalid var in global ~s" position))))]
+                        [else (box (eval-exp x env))])]
+                    [else (eopl:error 'apply-proc "invalid exp ~s" y)])
+                  (box (eval-exp x env)))) args vars))
+
+    ;; Need to check for argument lengths for the stand and opt closures
+    (define (apply-proc proc-value args rand-env)
+      (cases proc-val proc-value
+        [prim-proc (op) (apply-prim-proc op (eval-rands args rand-env) rand-env)]
         [closure-standard (vars bodies env)
-          (eval-bodies bodies (extend-env vars (list->vector (map box args)) env))]
+          (eval-bodies bodies (extend-env '() (list->vector (eval-ref-params vars args rand-env)) env))]
         [closure-nonfixed (var bodies env)
           (eval-bodies bodies (extend-env
-                                        (list var)
-                                        (list->vector (map box (cons args '())))
-                                        env))]
+                                (list var)
+                                (list->vector (map box (cons (eval-rands args rand-env) '())))
+                                env))]
         [closure-opt (vars opt bodies env)
           (eval-bodies bodies (extend-env
-                          (append vars (list opt))
-                          (list->vector (map box (append (take args (length vars)) (list (drop args (length vars))))))
-                          env))]
-        [else (eopl:error 'apply-proc
+                                (append vars (list opt))
+                                (let ((args1 (eval-rands args rand-env)))
+                                  (list->vector (map box (append (take args1 (length vars)) (list (drop args1 (length vars)))))))
+                                env))]
+        [else (error 'apply-proc
                      "Attempt to apply bad procedure: ~s"
                       proc-value)]))
 
@@ -212,10 +233,10 @@
                                                     (c...r? (symbol->string x)))))
                                       1 args)]
       [(apply) (if (= (length args) 2)
-                (apply-proc (car args)  (cadr args) env)
+                (apply-proc (car args) (map lit-exp (cadr args)) env)
                 (eopl:error prim-proc "improper number of argumments"))]
       [(map) (if (= (length args) 2)
-              (map-proc (car args) (cadr args) env)
+              (map-proc (car args) (map lit-exp (cadr args)) env)
               (eopl:error prim-proc "improper number of argumments ~s" prim-proc))]
       [else (eopl:error 'apply-prim-proc "Bad primitive procedure name: ~s" prim-proc)]))))
 
