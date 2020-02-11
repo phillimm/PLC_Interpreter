@@ -26,7 +26,7 @@
       [address (depth position)
         (apply-k k (apply-env-addr exp env))]
       [app-exp (rator rands)
-          (eval-exp rator env (app-exp-k rands env k))]
+        (eval-exp rator env (app-exp-k rands env k))]
       [if-else-exp (condition then else)
         (eval-exp condition env (test-else-k then else env k))]
       [if-no-else-exp (condition then)
@@ -208,10 +208,10 @@
                                                     (c...r? (symbol->string x)))))
                                       1 args k)]
       [(apply) (if (= (length args) 2)
-                (apply-proc (car args) (map lit-exp (cadr args)) k)
+                (apply-proc (car args) (cadr args) k)
                 (eopl:error prim-proc "improper number of argumments"))]
       [(map) (if (= (length args) 2)
-              (map-proc (car args) (map lit-exp (cadr args)) k)
+              (map-proc (car args) (cadr args) k)
               (eopl:error prim-proc "improper number of argumments ~s" prim-proc))]
       [else (eopl:error 'apply-prim-proc "Bad primitive procedure name: ~s" prim-proc)]))))
 
@@ -220,7 +220,7 @@
 (define (map-proc proc args k)
    (cond
      [(null? args) (apply-k k '())]
-     [else (cons (apply-proc proc (list (car args)) env) (map-proc-k proc (cdr args) k))]))
+     [else (apply-proc proc (list (car args)) (map-proc-k proc (cdr args) k))]))
 
      (define rep      ; "read-eval-print" loop.
        (lambda ()

@@ -122,6 +122,8 @@
     [extended-env (syms vals env)
       (let ((pos (list-find-position sym syms)))
             (if (number? pos)
+
+            
               (pass (vector-ref vals pos))
               (fail)))]))
 
