@@ -108,6 +108,43 @@
     (bodies (list-of expression?))
     (env environment?)])
 
+(define-datatype continuation continuation?
+    [empty-k]
+    [test-then-k
+      (then expression?)
+      (env environment?)
+      (k continuation?)]
+    [test-else-k
+      (then expression?)
+      (else expression?)
+      (env environment?)
+      (k continuation)]
+    [app-exp-k
+      (rands (list-of expression?))
+      (env environment?)
+      (k continuation?)]
+    [app-k
+      (rands proc-type?)
+      (k continuation?)]
+    [map-proc-k
+      (proc proc-type?)
+      (args (list-of scheme-value?))
+      (k continuation?)]
+    [cons-k
+      (first scheme-value?)
+      (k continuation?)]
+    [begin-k
+      (bodies (list-of expression?))
+      (env environment?)
+      (k continuation?)]
+    [set!-k
+      (ref box?)
+      (k continuation?)]
+    [rands-k
+      (rands (list-of expression?))
+      (env environment?)
+      (k continuation?)])
+
 (define (sym-ref? x)
   (or (symbol? x) (ref-exp? x)))
 
