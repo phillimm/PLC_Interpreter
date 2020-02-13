@@ -1,15 +1,3 @@
-;-------------------+
-;                   |
-;   ENVIRONMENTS    |
-;                   |
-;-------------------+
-
-
-
-
-
-; Environment definitions for CSSE 304 Scheme interpreter.
-; Based on EoPL sections 2.2 and 2.3
 (define (vector-cons elem src)
   (let ((newv (make-vector (+ 1 (vector-length src)))))
     (vector-set! newv 0 elem)
@@ -49,47 +37,18 @@
 (define (reset-global-env)
   (set! global-env init-env))
 
-; (define (apply-env-with-global env sym)
-;   (unbox (apply-env-ref-with-global env sym)))
-;
-; (define (apply-env-ref-with-global env sym)
-;   (apply-env-ref
-;      env
-;      sym
-;      (lambda (v) v); procedure to call if id is in env
-;      (lambda ()
-;         (if (c...r? (symbol->string sym))
-;           (box (prim-proc sym)) ;if it is a version of cadar then return that proc
-;         (apply-env-ref global-env
-;           sym
-;           (lambda (v) v)
-;           (lambda () (eopl:error 'apply-env "variable ~s is not bound" sym)))))))
-
 (define (apply-k k v)
   (cases continuation k
     [empty-k () v]
-    [test-then-k (then env k)
-      (if v
-        (eval-exp then env k)
-        (apply-k k (void)))]
-    [test-else-k (then else env k)
-      (if v
-        (eval-exp then env k)
-        (eval-exp else env k))]
-    [app-exp-k (rands env k)
-      (eval-rands rands env (app-k v k))]
-    [rands-k (rands env k)
-      (eval-rands rands env (cons-k v k))]
-    [app-k (rator k)
-      (apply-proc rator v k)]
-    [cons-k (first k)
-      (apply-k k (cons first v))]
-    [begin-k (bodies env k)
-      (eval-bodies bodies env k)]
-    [set!-k (ref k)
-      (apply-k k (set-box! ref v))]
-    [map-proc-k (proc args k)
-      (map-proc proc args (cons-k v k))]))
+    [test-then-k (then env k) (if v (eval-exp then env k) (apply-k k (void)))]
+    [test-else-k (then else env k) (if v (eval-exp then env k) (eval-exp else env k))]
+    [app-exp-k (rands env k) (eval-rands rands env (app-k v k))]
+    [rands-k (rands env k) (eval-rands rands env (cons-k v k))]
+    [app-k (rator k) (apply-proc rator v k)]
+    [map-proc-k (proc args k) (map-proc proc args (cons-k v k))]
+    [cons-k (first k) (apply-k k (cons first v))]
+    [begin-k (bodies env k) (eval-bodies bodies env k)]
+    [set!-k (ref k) (apply-k k (set-box! ref v))]))
 
 (define (apply-env-addr addr env)
   (unbox (apply-env-addr-ref addr env)))
@@ -100,7 +59,6 @@
       (apply-env-ref depth position env)]
     [else (eopl:error 'apply-env "invalid address ~s" addr)]))
 
-
 (define (apply-env depth position env)
   (unbox (apply-env-ref depth position env)))
 
@@ -109,14 +67,14 @@
     (apply-env-ref-local env depth position
       (lambda (v) v)
       (lambda () (eopl:error 'eval-exp "invalid var ~s ~s" depth position)))
-    (apply-global-env-ref position
+    (apply-env-ref-global position
       (lambda (v) v)
       (lambda () (eopl:error 'eval-exp "invalid var ~s" position)))))
 
-(define (apply-global-env sym pass fail)
-  (unbox (apply-global-env-ref sym pass fail)))
+; (define (apply-global-env sym pass fail)
+;   (unbox (apply-global-env-ref sym pass fail)))
 
-(define (apply-global-env-ref sym pass fail)
+(define (apply-env-ref-global sym pass fail)
   (cases environment global-env
     [empty-env () (fail)]
     [extended-env (syms vals env)
@@ -125,8 +83,8 @@
               (pass (vector-ref vals pos))
               (fail)))]))
 
-(define (apply-env env depth position pass fail)
-  (unbox (apply-env-ref env depth position pass fail)))
+; (define (apply-env-local env depth position pass fail)
+;   (unbox (apply-env-ref env depth position pass fail)))
 
 (define (apply-env-ref-local env depth position pass fail)
   (cases environment env

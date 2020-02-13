@@ -19,44 +19,39 @@
 ; eval-exp is the main component of the interpreter
 
 (define (eval-exp exp env k)
-    (cases expression exp
-      [lit-exp (datum) (apply-k k datum)]
-;      [var-exp (var)
-;        (apply-env-with-global env id)]
-      [address (depth position)
-        (apply-k k (apply-env-addr exp env))]
-      [app-exp (rator rands)
-        (eval-exp rator env (app-exp-k rands env k))]
-      [if-else-exp (condition then else)
-        (eval-exp condition env (test-else-k then else env k))]
-      [if-no-else-exp (condition then)
-        (eval-exp condition env (test-then-k then env k))]
-      [while-exp (test bodies)
-        (if (eval-exp test env)
-          (begin (eval-bodies bodies env k)
-                  (eval-exp exp env k)))]
-      [lambda-exp (vars bodies)
-        (apply-k k (closure-standard vars bodies env))]
-      [lambda-nonfixed-exp (var bodies)
-        (apply-k k (closure-nonfixed var bodies env))]
-      [lambda-opt-exp (vars opt bodies)
-        (apply-k k (closure-opt vars opt bodies env))]
-      [begin-exp (bodies)
-        (eval-bodies bodies env k)]
-      [set!-address-exp (id exp)
-        (eval-exp exp env (set!-k (apply-env-addr-ref id env) k))]
-      [else (eopl:error 'eval-exp "Bad abstract syntax: ~s" exp)]))
+(cases expression exp
+  [lit-exp (datum) (apply-k k datum)]
+  [address (depth position)
+    (apply-k k (apply-env depth position env))]
+  [app-exp (rator rands)
+    (eval-exp rator env (app-exp-k rands env k))]
+  [if-no-else-exp (condition then)
+    (eval-exp condition env (test-then-k then env k))]
+  [if-else-exp (condition then else)
+    (eval-exp condition env (test-else-k then else env k))]
+  [lambda-exp (vars bodies)
+    (apply-k k (closure-standard vars bodies env))]
+  [lambda-nonfixed-exp (var bodies)
+    (apply-k k (closure-nonfixed var bodies env))]
+  [lambda-opt-exp (vars opt bodies)
+    (apply-k k (closure-opt vars opt bodies env))]
+  [set!-address-exp (id exp)
+    (eval-exp exp env (set!-k (apply-env-addr-ref id env) k))]
+  [begin-exp (bodies) (eval-bodies bodies env k)]
+  [else (eopl:error 'eval-exp "Bad abstract syntax: ~a" exp)]))
 
 
 ; evaluate the list of operands, putting results into a list
 
 (define (eval-rands rands env k)
-  (cond [(null? rands) (apply-k k '())]
-        [else (eval-exp (car rands) env (rands-k (cdr rands) env k))]))
+  (cond
+    [(null? rands) (apply-k k '())]
+    [else (eval-exp (car rands) env (rands-k (cdr rands) env k))]))
 
 (define eval-bodies
   (lambda (bodies env k)
-    (cond [(null? (cdr bodies)) (eval-exp (car bodies) env k)]
+    (cond ;[(null? bodies) (void)]
+          [(null? (cdr bodies)) (eval-exp (car bodies) env k)]
           [else (eval-exp (car bodies) env (begin-k (cdr bodies) env k))])))
 
 
@@ -96,24 +91,24 @@
                   (box (eval-exp x env)))) args vars))
 
     ;; Need to check for argument lengths for the stand and opt closures
-(define (apply-proc proc-value args k)
-  (cases proc-val proc-value
-    [prim-proc (op) (apply-prim-proc op args k)]
-    [closure-standard (vars bodies env)
-      (eval-bodies bodies (extend-env vars (list->vector (map box args)) env) k)]
-    [closure-nonfixed (var bodies env)
-      (eval-bodies bodies (extend-env
-                            (list var)
-                            (list->vector (map box (cons args '())))
-                            env) k)]
-    [closure-opt (vars opt bodies env)
-      (eval-bodies bodies (extend-env
-                            (append vars (list opt))
-                            (list->vector (map box (append (take args (length vars)) (list (drop args (length vars))))))
-                            env) k)]
-    [else (error 'apply-proc
-                 "Attempt to apply bad procedure: ~s"
-                  proc-value)]))
+    (define (apply-proc proc-value args k)
+      (cases proc-val proc-value
+        [prim-proc (op) (apply-prim-proc op args k)]
+        [closure-standard (vars bodies env)
+          (eval-bodies bodies (extend-env vars (list->vector (map box args)) env) k)]
+        [closure-nonfixed (var bodies env)
+          (eval-bodies bodies (extend-env
+                                (list var)
+                                (list->vector (map box (cons args '())))
+                                env) k)]
+        [closure-opt (vars opt bodies env)
+          (eval-bodies bodies (extend-env
+                                (append vars (list opt))
+                                (list->vector (map box (append (take args (length vars)) (list (drop args (lengthh vars))))))
+                                env) k)]
+        [else (error 'apply-proc
+                     "Attempt to apply bad procedure: ~s"
+                      proc-value)]))
 
 (define *prim-proc-names* '(+ - * / = > < <= >= add1 sub1 zero? cons car cdr list null? assq eq? eqv?
       equal? atom? length list->vector list? pair? procedure? vector->list vector
