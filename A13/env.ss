@@ -1,23 +1,23 @@
-(define (vector-cons elem src)
-  (let ((newv (make-vector (+ 1 (vector-length src)))))
-    (vector-set! newv 0 elem)
-    (vector-copy! newv 1 src 0)
+(define (v-cons element source)
+  (let ((newv (make-vector (+ 1 (vector-length source)))))
+    (vector-set! newv 0 element)
+    (vector-copy! newv 1 source 0)
     newv))
 
-(define (vector-copy! dest dest-start src src-start)
-  (letrec ((loop (lambda (dest-start src-start)
+(define (vector-copy! dest dest-start source source-start)
+  (letrec ((loop (lambda (dest-start source-start)
                   (if (not (or
                     (= dest-start (vector-length dest))
-                      (= src-start (vector-length src))))
-                    (begin (vector-set! dest dest-start (vector-ref src src-start))
-                      (loop (+ 1 dest-start) (+ 1 src-start)))))))
-          (loop dest-start src-start)))
+                      (= source-start (vector-length source))))
+                    (begin (vector-set! dest dest-start (vector-ref source source-start))
+                      (loop (+ 1 dest-start) (+ 1 source-start)))))))
+          (loop dest-start source-start)))
 
-(define (extend-env syms vals env)
-    (extended-env syms vals env))
+(define (extend-env symbols vals env)
+    (extended-env symbols vals env))
 
-(define (list-find-position sym los)
-    (list-index (lambda (xsym) (eqv? sym xsym)) los))
+(define (list-find-position symbol los)
+    (list-index (lambda (xsymbol) (eqv? symbol xsymbol)) los))
 
 (define (list-index pred ls)
     (cond
@@ -28,10 +28,10 @@
 		 (+ 1 list-index-r)
 		 #f)))))
 
-(define (add-to-global-env sym value)
+(define (add-to-global-env symbol value)
   (cases environment global-env
-    [extended-env (syms vals env)
-      (set! global-env (extended-env (cons sym syms) (vector-cons (box value) vals) env))]
+    [extended-env (symbols vals env)
+      (set! global-env (extended-env (cons symbol symbols) (v-cons (box value) vals) env))]
     [else (eopl:error 'add-to-global-env "invalid environment!!! panic!!!!")]))
 
 (define (reset-global-env)
@@ -56,40 +56,34 @@
 (define (apply-env-addr-ref addr env)
   (cases expression addr
     [address (depth position)
-      (apply-env-ref depth position env)]
+      (apply-env-reference depth position env)]
     [else (eopl:error 'apply-env "invalid address ~s" addr)]))
 
 (define (apply-env depth position env)
-  (unbox (apply-env-ref depth position env)))
+  (unbox (apply-env-reference depth position env)))
 
-(define (apply-env-ref depth position env)
+(define (apply-env-reference depth position env)
   (if (number? depth)
-    (apply-env-ref-local env depth position
+    (apply-env-reference-local env depth position
       (lambda (v) v)
       (lambda () (eopl:error 'eval-exp "invalid var ~s ~s" depth position)))
-    (apply-env-ref-global position
+    (apply-env-reference-global position
       (lambda (v) v)
       (lambda () (eopl:error 'eval-exp "invalid var ~s" position)))))
 
-; (define (apply-global-env sym pass fail)
-;   (unbox (apply-global-env-ref sym pass fail)))
-
-(define (apply-env-ref-global sym pass fail)
+(define (apply-env-reference-global symbol pass fail)
   (cases environment global-env
     [empty-env () (fail)]
-    [extended-env (syms vals env)
-      (let ((pos (list-find-position sym syms)))
+    [extended-env (symbols vals env)
+      (let ((pos (list-find-position symbol symbols)))
             (if (number? pos)
               (pass (vector-ref vals pos))
               (fail)))]))
 
-; (define (apply-env-local env depth position pass fail)
-;   (unbox (apply-env-ref env depth position pass fail)))
-
-(define (apply-env-ref-local env depth position pass fail)
+(define (apply-env-reference-local env depth position pass fail)
   (cases environment env
     [empty-env () (fail)]
-    [extended-env (syms vals env)
+    [extended-env (symbols vals env)
       (if (= 0 depth)
         (vector-ref vals position)
-        (apply-env-ref-local env (- depth 1) position pass fail))]))
+        (apply-env-reference-local env (- depth 1) position pass fail))]))

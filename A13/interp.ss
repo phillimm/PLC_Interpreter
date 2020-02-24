@@ -19,40 +19,39 @@
 ; eval-exp is the main component of the interpreter
 
 (define (eval-exp exp env k)
-(cases expression exp
-  [lit-exp (datum) (apply-k k datum)]
-  [address (depth position)
-    (apply-k k (apply-env depth position env))]
-  [app-exp (rator rands)
-    (eval-exp rator env (app-exp-k rands env k))]
-  [if-no-else-exp (condition then)
-    (eval-exp condition env (test-then-k then env k))]
-  [if-else-exp (condition then else)
-    (eval-exp condition env (test-else-k then else env k))]
-  [lambda-exp (vars bodies)
-    (apply-k k (closure-standard vars bodies env))]
-  [lambda-nonfixed-exp (var bodies)
-    (apply-k k (closure-nonfixed var bodies env))]
-  [lambda-opt-exp (vars opt bodies)
-    (apply-k k (closure-opt vars opt bodies env))]
-  [set!-address-exp (id exp)
-    (eval-exp exp env (set!-k (apply-env-addr-ref id env) k))]
-  [begin-exp (bodies) (eval-bodies bodies env k)]
-  [else (eopl:error 'eval-exp "Bad abstract syntax: ~a" exp)]))
+  (cases expression exp
+    [lit-exp (datum) (apply-k k datum)]
+    [address (depth position)
+      (apply-k k (apply-env depth position env))]
+    [app-exp (rator rands)
+      (eval-exp rator env (app-exp-k rands env k))]
+    [if-no-else-exp (condition then)
+      (eval-exp condition env (test-then-k then env k))]
+    [if-else-exp (condition then else)
+      (eval-exp condition env (test-else-k then else env k))]
+    [lambda-exp (vars bodies)
+      (apply-k k (closure-standard vars bodies env))]
+    [lambda-nonfixed-exp (var bodies)
+      (apply-k k (closure-nonfixed var bodies env))]
+    [lambda-opt-exp (vars opt bodies)
+      (apply-k k (closure-opt vars opt bodies env))]
+    [set!-address-exp (id exp)
+      (eval-exp exp env (set!-k (apply-env-addr-ref id env) k))]
+    [begin-exp (bodies) (eval-bodies bodies env k)]
+    [else (eopl:error 'eval-exp "Bad abstract syntax: ~a" exp)]))
 
 
 ; evaluate the list of operands, putting results into a list
 
 (define (eval-rands rands env k)
-  (cond
-    [(null? rands) (apply-k k '())]
-    [else (eval-exp (car rands) env (rands-k (cdr rands) env k))]))
+  (if (null? rands)
+    (apply-k k '())
+    (eval-exp (car rands) env (rands-k (cdr rands) env k))))
 
-(define eval-bodies
-  (lambda (bodies env k)
-    (cond ;[(null? bodies) (void)]
-          [(null? (cdr bodies)) (eval-exp (car bodies) env k)]
-          [else (eval-exp (car bodies) env (begin-k (cdr bodies) env k))])))
+(define (eval-bodies bodies env k)
+    (if (null? (cdr bodies))
+      (eval-exp (car bodies) env k)
+      (eval-exp (car bodies) env (begin-k (cdr bodies) env k))))
 
 
 
@@ -71,49 +70,50 @@
     (drop (cdr ls) (- num 1))))
 
 
-    (define (eval-ref-params vars args env)
-      (map (lambda (x y)
-              (if (expression? y)
-                  (cases expression y
-                    [ref-exp (id)
-                      (cases expression x
-                        [address (depth position)
-                          (if (number? depth)
-                            (apply-env-ref env depth position
-                              (lambda (v) v)
-                              (lambda ()
-                                (eopl:error 'eval-exp "invalid address ~s ~s" depth position)))
-                            (apply-global-env-ref position
-                              (lambda (v) v)
-                                (lambda () (eopl:error 'eval-exp "invalid var in global ~s" position))))]
-                        [else (box (eval-exp x env))])]
-                    [else (eopl:error 'apply-proc "invalid exp ~s" y)])
-                  (box (eval-exp x env)))) args vars))
+(define (eval-reference-parameters vars args env)
+  (map (lambda (x y)
+      (if (expression? y)
+        (cases expression y
+          [ref-exp (id)
+            (cases expression x
+              [address (depth position)
+                (if (number? depth)
+                  (apply-env-ref env depth position
+                    (lambda (v) v)
+                      (lambda ()
+                        (eopl:error 'eval-exp "invalid address ~s ~s" depth position)))
+                  (apply-global-env-ref position
+                    (lambda (v) v)
+                      (lambda () (eopl:error 'eval-exp "invalid var in global ~s" position))))]
+              [else (box (eval-exp x env))])]
+          [else (eopl:error 'apply-proc "invalid exp ~s" y)])
+        (box (eval-exp x env)))) args vars))
 
     ;; Need to check for argument lengths for the stand and opt closures
-    (define (apply-proc proc-value args k)
-      (cases proc-val proc-value
-        [prim-proc (op) (apply-prim-proc op args k)]
-        [closure-standard (vars bodies env)
-          (eval-bodies bodies (extend-env vars (list->vector (map box args)) env) k)]
-        [closure-nonfixed (var bodies env)
-          (eval-bodies bodies (extend-env
-                                (list var)
-                                (list->vector (map box (cons args '())))
-                                env) k)]
-        [closure-opt (vars opt bodies env)
-          (eval-bodies bodies (extend-env
-                                (append vars (list opt))
-                                (list->vector (map box (append (take args (length vars)) (list (drop args (lengthh vars))))))
-                                env) k)]
-        [else (error 'apply-proc
-                     "Attempt to apply bad procedure: ~s"
-                      proc-value)]))
+(define (apply-proc proc-value args k)
+  (cases proc-val proc-value
+    [prim-proc (op) (apply-prim-proc op args k)]
+    [closure-standard (vars bodies env)
+      (eval-bodies bodies (extend-env vars (list->vector (map box args)) env) k)]
+    [closure-nonfixed (var bodies env)
+      (eval-bodies bodies (extend-env
+                            (list var)
+                            (list->vector (map box (cons args '())))
+                            env) k)]
+    [closure-opt (vars opt bodies env)
+      (eval-bodies bodies (extend-env
+                            (append vars (list opt))
+                            (list->vector (map box (append (take args (length vars)) (list (drop args (lengthh vars))))))
+                            env) k)]
+    [continuation-proc (k) (apply-k k (car args))]
+    [else (error 'apply-proc
+                 "Attempt to apply bad procedure: ~s"
+                  proc-value)]))
 
 (define *prim-proc-names* '(+ - * / = > < <= >= add1 sub1 zero? cons car cdr list null? assq eq? eqv?
       equal? atom? length list->vector list? pair? procedure? vector->list vector
       make-vector vector-ref vector? number? symbol? set-car! set-cdr! vector-set!
-      display newline not map apply void quotient append list-tail))
+      display newline not map apply void quotient append list-tail exit-list call/cc))
 
 (define init-env         ; for now, our initial global environment only contains
   (extend-env            ; procedure names.  Recall that an environment associates
@@ -133,10 +133,6 @@
     (eopl:error prim-proc "improper number of argumments")))
 
 (define (apply-prim-proc prim-proc args k)
-  (let ((proc (symbol->string prim-proc)))
-    (if (c...r? proc)
-      ((make-c...r proc) (car args))
-
     (case prim-proc
       ; any number of arguments
 
@@ -152,12 +148,12 @@
       [(append) (apply-k k (apply append args))]
       [(vector) (apply-k k (apply vector args))]
       [(list) (apply-k k args)]
+      [(exit-list) args]
+      [(call/cc) (apply-proc (car args) (list (continuation-proc k)) k)]
 
       ; no arguments
       [(newline) (check-length newline 0 args k)]
       [(void) (check-length void 0 args k)]
-  ;    [(reset-global-env)
-  ;          (set! global-env init-env)]
 
       ; 1 argument
       [('quote) (check-length (lambda (x) x) 1 args k)]
@@ -197,18 +193,14 @@
 
       ; special prim-procs
 
-      [(procedure?) (check-length (lambda (x) (or
-                                                  (proc-type? x)
-                                                  (and (symbol? x)
-                                                    (c...r? (symbol->string x)))))
-                                      1 args k)]
+      [(procedure?) (check-length (lambda (x) (proc-type? x))  1 args k)]
       [(apply) (if (= (length args) 2)
                 (apply-proc (car args) (cadr args) k)
                 (eopl:error prim-proc "improper number of argumments"))]
       [(map) (if (= (length args) 2)
               (map-proc (car args) (cadr args) k)
               (eopl:error prim-proc "improper number of argumments ~s" prim-proc))]
-      [else (eopl:error 'apply-prim-proc "Bad primitive procedure name: ~s" prim-proc)]))))
+      [else (eopl:error 'apply-prim-proc "Bad primitive procedure name: ~s" prim-proc)]))
 
 
 
@@ -217,14 +209,14 @@
      [(null? args) (apply-k k '())]
      [else (apply-proc proc (list (car args)) (map-proc-k proc (cdr args) k))]))
 
-     (define rep      ; "read-eval-print" loop.
-       (lambda ()
-         (display "--> ")
-         ;; notice that we don't save changes to the environment...
-         (let ([answer (top-level-eval (lexical-address (syntax-expand (parse-exp (read)))))])
-           ;; TODO: are there answers that should display differently?
-           (eopl:pretty-print answer) (newline)
-           (rep))))  ; tail-recursive, so stack doesn't grow.
+(define rep      ; "read-eval-print" loop.
+   (lambda ()
+     (display "--> ")
+     ;; notice that we don't save changes to the environment...
+     (let ([answer (top-level-eval (lexical-address (syntax-expand (parse-exp (read)))))])
+       ;; TODO: are there answers that should display differently?
+       (eopl:pretty-print answer) (newline)
+       (rep))))  ; tail-recursive, so stack doesn't grow.
 
 (define eval-one-exp
   (lambda (x) (top-level-eval (lexical-address (syntax-expand (parse-exp x))))))

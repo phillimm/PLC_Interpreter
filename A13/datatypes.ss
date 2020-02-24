@@ -77,8 +77,6 @@
       (lambda (x)
         (or (number? x)
             (symbol? x))))]
-  ;[ref-exp
-  ;  (id symbol?)]
   [app-exp
    (rator expression?)
    (rands (list-of expression?))])
@@ -106,7 +104,9 @@
     (vars (list-of sym-ref?))
     (opt-var symbol?)
     (bodies (list-of expression?))
-    (env environment?)])
+    (env environment?)]
+  [continuation-proc
+    (k continuation?)])
 ; hello
 (define-datatype continuation continuation?
   [empty-k]

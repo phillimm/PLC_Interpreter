@@ -65,7 +65,6 @@
       [if-no-else-exp (condition then)
         (if-no-else-exp (syntax-expand condition) (syntax-expand then))]
       [begin-exp (bodies)
-      ;  (app-exp (lambda-exp (list ) (map syntax-expand bodies)) (list ))]
         (begin-exp (map syntax-expand bodies))]
       [or-exp (bodies)
         (syntax-expand (syntax-expand-or bodies))]
@@ -82,13 +81,6 @@
       [while-exp (test bodies)
         (syntax-expand-while test bodies)]
       [app-exp (rator rands)
-      ;  (cases expression rator
-      ;      [var-exp (id)
-      ;        (if (c...r? (symbol->string id))
-      ;          (let ((str (symbol->string id)))
-      ;            (car (make-c...r (string->list (substring str 1 (- (string-length str) 1))) rands)))
-      ;          (app-exp (syntax-expand rator) (map syntax-expand rands)))]
-      ;      [else (app-exp (syntax-expand rator) (map syntax-expand rands))])]
         (app-exp (syntax-expand rator) (map syntax-expand rands))]
       [else exp]))
 
@@ -97,16 +89,12 @@
   (while-exp (parse-exp (cadr datum)) (map parse-exp (cddr datum))))
 
 (define (syntax-expand-while test bodies)
-;  (syntax-expand-letrec
-;    (list (lit-exp 'helper))
-;    (list (lambda-exp '()
-;            (list (if-no-else-exp test
-;                                 (begin-exp (append (cdr bodies)
-;                                             (list (app-exp (var-exp 'helper) '()))))))))
-;    (list (app-exp (var-exp 'helper) '()))))
-    (while-exp (syntax-expand test)
-        (map syntax-expand bodies)))
-
+  (syntax-expand (letrec-exp
+          (list 'helper)
+          (list (lambda-exp '()
+            (list (if-no-else-exp (car bodies)
+              (begin-exp (append (cdr bodies) (list (app-exp (var-exp 'helper) '()))))))))
+          (list (app-exp (var-exp 'helper) '())))))
 
 (define (syntax-expand-letrec vars exps bodies)
   (syntax-expand
